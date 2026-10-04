@@ -1,0 +1,457 @@
+/* ==========================================
+   ARCHITECTURE DIAGRAM
+   ========================================== */
+
+.architecture-diagram {
+  width: 100%;
+  height: 700px;
+
+  margin-top: 24px;
+
+  position: relative;
+
+  overflow: hidden;
+
+  border-radius: 18px;
+
+  border: 1px solid #303442;
+
+  background: #0b0d14;
+}
+
+
+/* ==========================================
+   REACT FLOW
+   ========================================== */
+
+.architecture-diagram .react-flow {
+  width: 100%;
+  height: 100%;
+}
+
+
+/* ==========================================
+   CUSTOM NODE
+   ========================================== */
+
+.architecture-node {
+  width: 220px;
+  min-height: 82px;
+
+  padding: 14px 16px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  border-radius: 14px;
+
+  border: 1px solid #3b3f68;
+
+  background: #171a2a;
+
+  color: #f5f7ff;
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.35);
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+/* ==========================================
+   NODE HOVER
+   ========================================== */
+
+.architecture-node:hover {
+  transform: translateY(-3px);
+
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.25),
+    0 12px 35px rgba(0, 0, 0, 0.45);
+}
+
+
+/* ==========================================
+   NODE ICON
+   ========================================== */
+
+.architecture-node-icon {
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #252945;
+
+  border: 1px solid #383d63;
+
+  font-size: 19px;
+}
+
+
+/* ==========================================
+   NODE CONTENT
+   ========================================== */
+
+.architecture-node-content {
+  min-width: 0;
+}
+
+.architecture-node-title {
+  font-size: 14px;
+
+  font-weight: 700;
+
+  line-height: 1.3;
+
+  color: #ffffff;
+
+  word-break: break-word;
+}
+
+.architecture-node-subtitle {
+  margin-top: 5px;
+
+  font-size: 11px;
+
+  line-height: 1.4;
+
+  color: #a5a9c4;
+
+  word-break: break-word;
+}
+
+
+/* ==========================================
+   HANDLES
+   ========================================== */
+
+.architecture-node .react-flow__handle {
+  width: 7px;
+  height: 7px;
+
+  background: #818cf8;
+
+  border: 2px solid #171a2a;
+}
+
+
+/* ==========================================
+   EDGES
+   ========================================== */
+
+.architecture-diagram
+.react-flow__edge-path {
+  stroke: #6366f1;
+
+  stroke-width: 2;
+
+  filter:
+    drop-shadow(
+      0 0 3px
+      rgba(99, 102, 241, 0.45)
+    );
+}
+
+
+/* ==========================================
+   ANIMATED EDGES
+   ========================================== */
+
+.architecture-diagram
+.react-flow__edge.animated
+.react-flow__edge-path {
+  stroke: #818cf8;
+
+  stroke-width: 2.5;
+}
+
+
+/* ==========================================
+   BACKGROUND DOTS
+   ========================================== */
+
+.architecture-diagram
+.react-flow__background {
+  background: #0b0d14;
+}
+
+
+/* ==========================================
+   CONTROLS
+   ========================================== */
+
+.architecture-diagram
+.react-flow__controls {
+  position: absolute;
+
+  left: 16px;
+  bottom: 16px;
+
+  border: 1px solid #303442;
+
+  border-radius: 10px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.35);
+
+  background: #171a23;
+}
+
+.architecture-diagram
+.react-flow__controls-button {
+  width: 34px;
+  height: 34px;
+
+  padding: 7px;
+
+  background: #171a23;
+
+  border: none;
+
+  border-bottom: 1px solid #303442;
+
+  color: #c4c7d1;
+}
+
+.architecture-diagram
+.react-flow__controls-button:hover {
+  background: #222633;
+}
+
+.architecture-diagram
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+
+/* ==========================================
+   MINIMAP
+   ========================================== */
+
+.architecture-diagram
+.react-flow__minimap {
+  width: 180px;
+  height: 110px;
+
+  right: 16px;
+  bottom: 16px;
+
+  border: 1px solid #303442;
+
+  border-radius: 10px;
+
+  overflow: hidden;
+
+  background: #11131d;
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.35);
+}
+
+
+/* ==========================================
+   MINIMAP NODES
+   ========================================== */
+
+.architecture-diagram
+.react-flow__minimap-node {
+  fill: #6366f1;
+
+  stroke: #818cf8;
+
+  stroke-width: 1;
+}
+
+
+/* ==========================================
+   ATTRIBUTION
+   ========================================== */
+
+.architecture-diagram
+.react-flow__attribution {
+  font-size: 9px;
+
+  background: transparent;
+
+  color: #6b7280;
+}
+
+.architecture-empty {
+  margin-top: 24px;
+
+  height: 300px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 18px;
+
+  border: 1px solid #303442;
+
+  background: #0b0d14;
+
+  color: #9ca3af;
+}
+
+/* ==========================================
+   ARCHITECTURE CATEGORIES
+   ========================================== */
+
+.architecture-node {
+  border-left: 4px solid #6366f1;
+}
+
+
+/* FRONTEND */
+
+.architecture-frontend {
+  border-left-color: #38bdf8;
+}
+
+
+/* BACKEND */
+
+.architecture-backend {
+  border-left-color: #818cf8;
+}
+
+
+/* API */
+
+.architecture-api {
+  border-left-color: #c084fc;
+}
+
+
+/* LOGIC / SERVICES */
+
+.architecture-logic {
+  border-left-color: #a78bfa;
+}
+
+
+/* AI */
+
+.architecture-ai {
+  border-left-color: #f472b6;
+}
+
+
+/* DATA */
+
+.architecture-data {
+  border-left-color: #34d399;
+}
+
+
+/* TEST */
+
+.architecture-test {
+  border-left-color: #fbbf24;
+}
+
+
+/* CONFIG */
+
+.architecture-config {
+  border-left-color: #94a3b8;
+}
+
+
+/* OTHER */
+
+.architecture-other {
+  border-left-color: #64748b;
+}
+
+/* ==========================================
+   ARCHITECTURE LEGEND
+   ========================================== */
+
+.architecture-legend {
+  position: absolute;
+
+  top: 16px;
+  left: 16px;
+
+  z-index: 10;
+
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 10px;
+
+  padding: 10px 14px;
+
+  border-radius: 10px;
+
+  background: rgba(15, 17, 27, 0.92);
+
+  border: 1px solid #303442;
+
+  backdrop-filter: blur(8px);
+}
+
+.architecture-legend span {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  font-size: 11px;
+
+  color: #c4c7d1;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+
+  display: inline-block;
+
+  border-radius: 50%;
+}
+
+.frontend-dot {
+  background: #38bdf8;
+}
+
+.backend-dot {
+  background: #818cf8;
+}
+
+.api-dot {
+  background: #c084fc;
+}
+
+.logic-dot {
+  background: #a78bfa;
+}
+
+.ai-dot {
+  background: #f472b6;
+}
+
+.data-dot {
+  background: #34d399;
+}
