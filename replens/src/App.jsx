@@ -5,6 +5,10 @@ import ArchitectureDiagram from "./ArchitectureDiagram";
 
 import "./App.css";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000";
+
 function App() {
   // ==========================================
   // REPOSITORY STATE
@@ -103,7 +107,7 @@ function App() {
       setDependencyData(null);
 
       const url =
-        `http://localhost:5000/api/scan?path=${encodeURIComponent(
+        `${API_URL}/api/scan?path=${encodeURIComponent(
           repoPath.trim()
         )}`;
 
@@ -198,7 +202,7 @@ function App() {
       );
 
       const response = await fetch(
-        "http://localhost:5000/api/ask",
+        `${API_URL}/api/ask`,
         {
           method: "POST",
 
@@ -324,7 +328,7 @@ function App() {
 
         const response =
           await fetch(
-            "http://localhost:5000/api/architecture",
+            `${API_URL}/api/architecture`,
             {
               method: "POST",
 
@@ -450,7 +454,7 @@ function App() {
       );
 
       const response = await fetch(
-        "http://localhost:5000/api/code-tour",
+        `${API_URL}/api/code-tour`,
         {
           method: "POST",
 
@@ -544,7 +548,7 @@ function App() {
 
         const response =
           await fetch(
-            "http://localhost:5000/api/documentation",
+            `${API_URL}/api/documentation`,
             {
               method: "POST",
 
@@ -652,7 +656,7 @@ function App() {
 
         const response =
           await fetch(
-            "http://localhost:5000/api/documentation-drift",
+            `${API_URL}/api/documentation-drift`,
             {
               method: "POST",
 
@@ -764,7 +768,7 @@ function App() {
 
         const response =
           await fetch(
-            "http://localhost:5000/api/dependencies",
+            `${API_URL}/api/dependencies`,
             {
               method: "POST",
 
@@ -856,40 +860,15 @@ function App() {
           HEADER
           ====================================== */}
 
-      <header className="hero">
+      <header>
 
-        <div className="hero-glow hero-glow-one"></div>
-        <div className="hero-glow hero-glow-two"></div>
+        <h1>
+          RepoLens
+        </h1>
 
-        <div className="hero-content">
-
-          <div className="hero-badge">
-            <span className="hero-badge-dot"></span>
-            AI-Powered Repository Intelligence
-          </div>
-
-          <h1>
-            Repo<span>Lens</span>
-          </h1>
-
-          <p className="hero-tagline">
-            Understand your codebase before you touch the code.
-          </p>
-
-          <p className="hero-description">
-            Scan a repository, uncover its architecture, ask questions,
-            generate documentation, and find codebase issues from one
-            intelligent workspace.
-          </p>
-
-          <div className="hero-capabilities">
-            <span>Repository Analysis</span>
-            <span>Architecture</span>
-            <span>AI Q&amp;A</span>
-            <span>Documentation</span>
-          </div>
-
-        </div>
+        <p>
+          Understand your codebase.
+        </p>
 
       </header>
 
@@ -899,55 +878,33 @@ function App() {
             REPOSITORY SCANNER
             ==================================== */}
 
-        <section className="scanner scanner-shell">
+        <section className="scanner">
 
-          <div className="scanner-intro">
-
-            <div className="scanner-eyebrow">
-              START HERE
-            </div>
-
-            <h2>
-              Analyze a Repository
-            </h2>
-
-            <p>
-              Give RepoLens the local path to a project and build
-              its intelligence dashboard.
-            </p>
-
-          </div>
+          <h2>
+            Analyze Repository
+          </h2>
 
           <div className="input-row">
 
-            <div className="repo-input-wrapper">
-
-              <span className="repo-input-icon">
-                &gt;_
-              </span>
-
-              <input
-                type="text"
-                placeholder="e.g. Z:\Projects\my-app"
-                value={repoPath}
-                onChange={(e) =>
-                  setRepoPath(
-                    e.target.value
-                  )
+            <input
+              type="text"
+              placeholder="Enter repository path"
+              value={repoPath}
+              onChange={(e) =>
+                setRepoPath(
+                  e.target.value
+                )
+              }
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter"
+                ) {
+                  analyzeRepository();
                 }
-                onKeyDown={(e) => {
-                  if (
-                    e.key === "Enter"
-                  ) {
-                    analyzeRepository();
-                  }
-                }}
-              />
-
-            </div>
+              }}
+            />
 
             <button
-              className="analyze-button"
               onClick={
                 analyzeRepository
               }
@@ -955,17 +912,9 @@ function App() {
             >
               {loading
                 ? "Analyzing..."
-                : "Analyze Repository →"}
+                : "Analyze"}
             </button>
 
-          </div>
-
-          <div className="scanner-hint">
-            <span>Local repository</span>
-            <span>•</span>
-            <span>No database required</span>
-            <span>•</span>
-            <span>Analysis runs through RepoLens</span>
           </div>
 
         </section>
@@ -977,19 +926,6 @@ function App() {
         {data && (
 
           <section className="dashboard">
-
-            <div className="dashboard-intro">
-              <div>
-                <span className="dashboard-eyebrow">
-                  REPOSITORY INTELLIGENCE
-                </span>
-                <h2>{data.analysis.projectName}</h2>
-                <p>
-                  Your codebase has been analyzed. Explore its health,
-                  architecture, documentation, dependencies, and source structure.
-                </p>
-              </div>
-            </div>
 
             {/* ==================================
                 ASK REPO LENS
@@ -1129,6 +1065,14 @@ function App() {
               )}
 
             </div>
+
+            {/* ==================================
+                PROJECT NAME
+                ================================== */}
+
+            <h2>
+              {data.analysis.projectName}
+            </h2>
 
             {/* ==================================
                 BASIC STATS
