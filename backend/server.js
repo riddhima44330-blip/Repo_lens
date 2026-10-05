@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 
@@ -31,25 +32,45 @@ const {
 } = require("./repositoryStore");
 
 const askRoute = require("./routes/askRoute");
+
 const architectureRoute =
   require("./routes/architectureRoute");
+
 const codeTourRoute =
   require("./routes/codeTourRoute");
+
 const documentationRoute =
   require("./routes/documentationRoute");
-const driftRoute = require("./routes/driftRoute");
+
+const driftRoute =
+  require("./routes/driftRoute");
+
 const dependencyRoute =
   require("./routes/dependencyRoute");
 
 const app = express();
 
-const PORT = 5000;
+
+// ==========================================
+// SERVER PORT
+// ==========================================
+
+// Render provides process.env.PORT.
+// For local development, it falls back to 5000.
+
+const PORT = process.env.PORT || 5000;
+
 
 // ==========================================
 // MIDDLEWARE
 // ==========================================
 
+// Allow requests from the frontend.
+
 app.use(cors());
+
+
+// Parse JSON requests.
 
 app.use(
   express.json({
@@ -57,29 +78,36 @@ app.use(
   })
 );
 
+
 // ==========================================
-// ASK REPO LENS ROUTE
+// REPO LENS API ROUTES
 // ==========================================
 
 app.use("/api", askRoute);
+
 app.use("/api", architectureRoute);
+
 app.use("/api", codeTourRoute);
+
 app.use("/api", documentationRoute);
+
 app.use("/api", driftRoute);
-app.use(
-  "/api",
-  dependencyRoute
-);
+
+app.use("/api", dependencyRoute);
+
 
 // ==========================================
 // ANALYZE REPOSITORY
 // ==========================================
 
 app.get("/api/scan", (req, res) => {
+
   try {
+
     console.log("=================================");
     console.log("REPOSITORY SCAN REQUEST");
     console.log("=================================");
+
 
     // ---------------------------------
     // Get repository path
@@ -87,16 +115,21 @@ app.get("/api/scan", (req, res) => {
 
     const projectPath = req.query.path;
 
+
     if (!projectPath) {
+
       return res.status(400).json({
         error: "Repository path is required"
       });
+
     }
+
 
     console.log(
       "Project path:",
       projectPath
     );
+
 
     // ---------------------------------
     // 1. Scan repository
@@ -106,18 +139,22 @@ app.get("/api/scan", (req, res) => {
       "STEP 1: Scanning repository..."
     );
 
+
     const scanResult =
       scanDirectory(projectPath);
+
 
     console.log(
       "Files found:",
       scanResult.files.length
     );
 
+
     console.log(
       "Folders found:",
       scanResult.folders.length
     );
+
 
     // ---------------------------------
     // 2. Analyze project
@@ -127,26 +164,31 @@ app.get("/api/scan", (req, res) => {
       "STEP 2: Analyzing project..."
     );
 
+
     const analysis =
       analyzeProject(
         projectPath,
         scanResult
       );
 
+
     console.log(
       "Project:",
       analysis.projectName
     );
+
 
     console.log(
       "Languages:",
       analysis.languages
     );
 
+
     console.log(
       "Frameworks:",
       analysis.frameworks
     );
+
 
     // ---------------------------------
     // 3. Analyze repository health
@@ -156,6 +198,7 @@ app.get("/api/scan", (req, res) => {
       "STEP 3: Checking repository health..."
     );
 
+
     const health =
       analyzeHealth(
         projectPath,
@@ -163,10 +206,12 @@ app.get("/api/scan", (req, res) => {
         analysis
       );
 
+
     console.log(
       "Health score:",
       health.score
     );
+
 
     // ---------------------------------
     // 4. Analyze README
@@ -176,6 +221,7 @@ app.get("/api/scan", (req, res) => {
       "STEP 4: Checking README..."
     );
 
+
     const readme =
       analyzeReadme(
         projectPath,
@@ -183,10 +229,12 @@ app.get("/api/scan", (req, res) => {
         analysis
       );
 
+
     console.log(
       "README score:",
       readme.score
     );
+
 
     // ---------------------------------
     // 5. Read source files
@@ -196,15 +244,18 @@ app.get("/api/scan", (req, res) => {
       "STEP 5: Reading source files..."
     );
 
+
     const sourceFiles =
       readSourceFiles(
         projectPath
       );
 
+
     console.log(
       "Source files loaded:",
       sourceFiles.length
     );
+
 
     // ---------------------------------
     // 6. Generate repository context
@@ -213,6 +264,7 @@ app.get("/api/scan", (req, res) => {
     console.log(
       "STEP 6: Generating repository context..."
     );
+
 
     const context =
       generateContext(
@@ -223,14 +275,17 @@ app.get("/api/scan", (req, res) => {
         sourceFiles
       );
 
+
     console.log(
       "Context generated."
     );
+
 
     console.log(
       "Context source files:",
       context.sourceCode?.totalFiles
     );
+
 
     // ---------------------------------
     // 7. Store repository context
@@ -240,13 +295,16 @@ app.get("/api/scan", (req, res) => {
       "STEP 7: Storing repository context..."
     );
 
+
     const repositoryId =
       createRepository(context);
+
 
     console.log(
       "Repository ID:",
       repositoryId
     );
+
 
     // ---------------------------------
     // 8. Return repository information
@@ -256,9 +314,11 @@ app.get("/api/scan", (req, res) => {
       "Repository analysis completed."
     );
 
+
     console.log(
       "================================="
     );
+
 
     return res.json({
 
@@ -276,23 +336,28 @@ app.get("/api/scan", (req, res) => {
 
     });
 
+
   } catch (error) {
 
     console.error(
       "================================="
     );
 
+
     console.error(
       "SCAN ERROR:"
     );
+
 
     console.error(
       error
     );
 
+
     console.error(
       "================================="
     );
+
 
     return res.status(500).json({
 
@@ -305,7 +370,9 @@ app.get("/api/scan", (req, res) => {
     });
 
   }
+
 });
+
 
 // ==========================================
 // UNKNOWN API ROUTES
@@ -322,6 +389,7 @@ app.use("/api", (req, res) => {
 
 });
 
+
 // ==========================================
 // START SERVER
 // ==========================================
@@ -332,25 +400,31 @@ app.listen(PORT, () => {
     "================================="
   );
 
+
   console.log(
-    `RepoLens backend running on http://localhost:${PORT}`
+    `RepoLens backend running on port ${PORT}`
   );
+
 
   console.log(
     "Repository scan: GET /api/scan"
   );
 
+
   console.log(
     "Ask RepoLens: POST /api/ask"
   );
+
 
   console.log(
     "Source Code Intelligence: ENABLED"
   );
 
+
   console.log(
     "Backend Repository Context: ENABLED"
   );
+
 
   console.log(
     "================================="
