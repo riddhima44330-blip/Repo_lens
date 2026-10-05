@@ -107,9 +107,9 @@ function App() {
       setDependencyData(null);
 
       const url =
-        `${API_URL}/api/scan?path=${encodeURIComponent(
-          repoPath.trim()
-        )}`;
+        `${API_URL}/api/scan?url=${encodeURIComponent(
+  repoPath.trim()
+)}`
 
       console.log("================================");
       console.log("SCANNING REPOSITORY");
@@ -888,7 +888,7 @@ function App() {
 
             <input
               type="text"
-              placeholder="Enter repository path"
+              placeholder="Enter Github repository URL"
               value={repoPath}
               onChange={(e) =>
                 setRepoPath(

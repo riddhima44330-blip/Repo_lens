@@ -31,6 +31,10 @@ const {
   createRepository
 } = require("./repositoryStore");
 
+const {
+  downloadRepository
+} = require("./repositoryDownloader");
+
 const askRoute = require("./routes/askRoute");
 
 const architectureRoute =
@@ -55,9 +59,6 @@ const app = express();
 // SERVER PORT
 // ==========================================
 
-// Render provides process.env.PORT.
-// For local development, it falls back to 5000.
-
 const PORT = process.env.PORT || 5000;
 
 
@@ -65,12 +66,7 @@ const PORT = process.env.PORT || 5000;
 // MIDDLEWARE
 // ==========================================
 
-// Allow requests from the frontend.
-
 app.use(cors());
-
-
-// Parse JSON requests.
 
 app.use(
   express.json({
@@ -97,7 +93,7 @@ app.use("/api", dependencyRoute);
 
 
 // ==========================================
-// ANALYZE REPOSITORY
+// ANALYZE GITHUB REPOSITORY
 // ==========================================
 
 app.get("/api/scan", (req, res) => {
@@ -110,33 +106,52 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // Get repository path
+    // Get GitHub repository URL
     // ---------------------------------
 
-    const projectPath = req.query.path;
+    const repositoryUrl = req.query.url;
 
 
-    if (!projectPath) {
+    if (!repositoryUrl) {
 
       return res.status(400).json({
-        error: "Repository path is required"
+        error: "GitHub repository URL is required"
       });
 
     }
 
 
     console.log(
-      "Project path:",
+      "Repository URL:",
+      repositoryUrl
+    );
+
+
+    // ---------------------------------
+    // 1. Download repository
+    // ---------------------------------
+
+    console.log(
+      "STEP 1: Downloading repository..."
+    );
+
+
+    const projectPath =
+      downloadRepository(repositoryUrl);
+
+
+    console.log(
+      "Repository downloaded to:",
       projectPath
     );
 
 
     // ---------------------------------
-    // 1. Scan repository
+    // 2. Scan repository
     // ---------------------------------
 
     console.log(
-      "STEP 1: Scanning repository..."
+      "STEP 2: Scanning repository..."
     );
 
 
@@ -157,11 +172,11 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // 2. Analyze project
+    // 3. Analyze project
     // ---------------------------------
 
     console.log(
-      "STEP 2: Analyzing project..."
+      "STEP 3: Analyzing project..."
     );
 
 
@@ -191,11 +206,11 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // 3. Analyze repository health
+    // 4. Analyze repository health
     // ---------------------------------
 
     console.log(
-      "STEP 3: Checking repository health..."
+      "STEP 4: Checking repository health..."
     );
 
 
@@ -214,11 +229,11 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // 4. Analyze README
+    // 5. Analyze README
     // ---------------------------------
 
     console.log(
-      "STEP 4: Checking README..."
+      "STEP 5: Checking README..."
     );
 
 
@@ -237,11 +252,11 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // 5. Read source files
+    // 6. Read source files
     // ---------------------------------
 
     console.log(
-      "STEP 5: Reading source files..."
+      "STEP 6: Reading source files..."
     );
 
 
@@ -258,11 +273,11 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // 6. Generate repository context
+    // 7. Generate repository context
     // ---------------------------------
 
     console.log(
-      "STEP 6: Generating repository context..."
+      "STEP 7: Generating repository context..."
     );
 
 
@@ -288,11 +303,11 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // 7. Store repository context
+    // 8. Store repository context
     // ---------------------------------
 
     console.log(
-      "STEP 7: Storing repository context..."
+      "STEP 8: Storing repository context..."
     );
 
 
@@ -307,7 +322,7 @@ app.get("/api/scan", (req, res) => {
 
 
     // ---------------------------------
-    // 8. Return repository information
+    // 9. Return repository information
     // ---------------------------------
 
     console.log(
@@ -323,6 +338,8 @@ app.get("/api/scan", (req, res) => {
     return res.json({
 
       repositoryId,
+
+      repositoryUrl,
 
       scan: scanResult,
 
@@ -362,7 +379,7 @@ app.get("/api/scan", (req, res) => {
     return res.status(500).json({
 
       error:
-        "Failed to scan repository",
+        "Could not analyze repository",
 
       details:
         error.message
@@ -407,7 +424,7 @@ app.listen(PORT, () => {
 
 
   console.log(
-    "Repository scan: GET /api/scan"
+    "Repository scan: GET /api/scan?url=<github-url>"
   );
 
 
@@ -423,6 +440,11 @@ app.listen(PORT, () => {
 
   console.log(
     "Backend Repository Context: ENABLED"
+  );
+
+
+  console.log(
+    "GitHub Repository Scanning: ENABLED"
   );
 
 
