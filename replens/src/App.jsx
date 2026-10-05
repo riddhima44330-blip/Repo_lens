@@ -1,16 +1,17 @@
 import { useState } from "react";
 
 import FileTree from "./FileTree";
-
 import ArchitectureDiagram from "./ArchitectureDiagram";
 
 import "./App.css";
 
 function App() {
+  // ==========================================
+  // REPOSITORY STATE
+  // ==========================================
+
   const [repoPath, setRepoPath] = useState("");
-
   const [data, setData] = useState(null);
-
   const [loading, setLoading] = useState(false);
 
   // ==========================================
@@ -18,30 +19,59 @@ function App() {
   // ==========================================
 
   const [question, setQuestion] = useState("");
-
   const [answer, setAnswer] = useState("");
-
   const [asking, setAsking] = useState(false);
 
   // ==========================================
-  // ARCHITECTURE EXPLAINER STATE
+  // ARCHITECTURE STATE
   // ==========================================
 
-  const [
-    architectureAnswer,
-    setArchitectureAnswer
-  ] = useState("");
+  const [architectureAnswer, setArchitectureAnswer] =
+    useState("");
 
-  const [
-    architectureLoading,
-    setArchitectureLoading
-  ] = useState(false);
+  const [architectureLoading, setArchitectureLoading] =
+    useState(false);
 
-  const [
-    architectureGraph,
-    setArchitectureGraph
-  ] = useState(null);
+  const [architectureGraph, setArchitectureGraph] =
+    useState(null);
 
+  // ==========================================
+  // CODE TOUR STATE
+  // ==========================================
+
+  const [codeTour, setCodeTour] = useState(null);
+  const [codeTourLoading, setCodeTourLoading] =
+    useState(false);
+
+  // ==========================================
+  // DOCUMENTATION STATE
+  // ==========================================
+
+  const [documentation, setDocumentation] =
+    useState(null);
+
+  const [documentationLoading, setDocumentationLoading] =
+    useState(false);
+
+  // ==========================================
+  // DOCUMENTATION DRIFT STATE
+  // ==========================================
+
+  const [documentationDrift, setDocumentationDrift] =
+    useState(null);
+
+  const [documentationDriftLoading, setDocumentationDriftLoading] =
+    useState(false);
+
+  // ==========================================
+  // DEPENDENCY INTELLIGENCE STATE
+  // ==========================================
+
+  const [dependencyData, setDependencyData] =
+    useState(null);
+
+  const [dependencyLoading, setDependencyLoading] =
+    useState(false);
 
   // ==========================================
   // ANALYZE REPOSITORY
@@ -56,13 +86,21 @@ function App() {
     try {
       setLoading(true);
 
+      // Reset previous results
       setData(null);
 
       setAnswer("");
 
       setArchitectureAnswer("");
-
       setArchitectureGraph(null);
+
+      setCodeTour(null);
+
+      setDocumentation(null);
+
+      setDocumentationDrift(null);
+
+      setDependencyData(null);
 
       const url =
         `http://localhost:5000/api/scan?path=${encodeURIComponent(
@@ -90,15 +128,15 @@ function App() {
       } catch {
         throw new Error(
           "Backend returned an invalid response:\n" +
-          text
+            text
         );
       }
 
       if (!response.ok) {
         throw new Error(
           result.details ||
-          result.error ||
-          `Server error: ${response.status}`
+            result.error ||
+            `Server error: ${response.status}`
         );
       }
 
@@ -109,7 +147,6 @@ function App() {
       );
 
       console.log(result);
-
     } catch (error) {
       console.error(
         "SCAN ERROR:",
@@ -118,14 +155,12 @@ function App() {
 
       alert(
         "Could not analyze repository.\n\n" +
-        error.message
+          error.message
       );
-
     } finally {
       setLoading(false);
     }
   };
-
 
   // ==========================================
   // ASK REPO LENS
@@ -137,7 +172,7 @@ function App() {
       return;
     }
 
-    if (!data) {
+    if (!data?.repositoryId) {
       alert(
         "Please analyze a repository first"
       );
@@ -147,7 +182,6 @@ function App() {
 
     try {
       setAsking(true);
-
       setAnswer("");
 
       console.log("================================");
@@ -169,7 +203,8 @@ function App() {
           method: "POST",
 
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type":
+              "application/json"
           },
 
           body: JSON.stringify({
@@ -202,15 +237,15 @@ function App() {
       } catch {
         throw new Error(
           "Backend returned an invalid response:\n" +
-          text
+            text
         );
       }
 
       if (!response.ok) {
         throw new Error(
           result.details ||
-          result.error ||
-          `Server returned ${response.status}`
+            result.error ||
+            `Server returned ${response.status}`
         );
       }
 
@@ -240,7 +275,6 @@ function App() {
       setAnswer(
         result.answer
       );
-
     } catch (error) {
       console.error(
         "ASK REPO LENS ERROR:",
@@ -249,14 +283,12 @@ function App() {
 
       alert(
         "Could not ask RepoLens.\n\n" +
-        error.message
+          error.message
       );
-
     } finally {
       setAsking(false);
     }
   };
-
 
   // ==========================================
   // EXPLAIN ARCHITECTURE
@@ -264,7 +296,6 @@ function App() {
 
   const explainArchitecture =
     async () => {
-
       if (!data?.repositoryId) {
         alert(
           "Please analyze a repository first"
@@ -274,19 +305,14 @@ function App() {
       }
 
       try {
-        setArchitectureLoading(
-          true
-        );
+        setArchitectureLoading(true);
 
-        setArchitectureAnswer(
-          ""
-        );
+        setArchitectureAnswer("");
 
-        setArchitectureGraph(
-          null
-        );
+        setArchitectureGraph(null);
 
         console.log("================================");
+
         console.log(
           "EXPLAINING REPOSITORY ARCHITECTURE"
         );
@@ -330,15 +356,15 @@ function App() {
         } catch {
           throw new Error(
             "Backend returned an invalid response:\n" +
-            text
+              text
           );
         }
 
         if (!response.ok) {
           throw new Error(
             result.details ||
-            result.error ||
-            `Server returned ${response.status}`
+              result.error ||
+              `Server returned ${response.status}`
           );
         }
 
@@ -365,13 +391,13 @@ function App() {
         console.log(
           "Architecture nodes:",
           result.graph?.nodes?.length ||
-          0
+            0
         );
 
         console.log(
           "Architecture edges:",
           result.graph?.edges?.length ||
-          0
+            0
         );
 
         setArchitectureAnswer(
@@ -381,7 +407,6 @@ function App() {
         setArchitectureGraph(
           result.graph || null
         );
-
       } catch (error) {
         console.error(
           "ARCHITECTURE ERROR:",
@@ -390,9 +415,8 @@ function App() {
 
         alert(
           "Could not explain architecture.\n\n" +
-          error.message
+            error.message
         );
-
       } finally {
         setArchitectureLoading(
           false
@@ -400,6 +424,426 @@ function App() {
       }
     };
 
+  // ==========================================
+  // CODE TOUR
+  // ==========================================
+
+  const generateCodeTour = async () => {
+    if (!data?.repositoryId) {
+      alert(
+        "Please analyze a repository first"
+      );
+
+      return;
+    }
+
+    try {
+      setCodeTourLoading(true);
+      setCodeTour(null);
+
+      console.log("================================");
+      console.log("GENERATING CODE TOUR");
+
+      console.log(
+        "Repository ID:",
+        data.repositoryId
+      );
+
+      const response = await fetch(
+        "http://localhost:5000/api/code-tour",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            repositoryId:
+              data.repositoryId
+          })
+        }
+      );
+
+      const text =
+        await response.text();
+
+      console.log(
+        "Code Tour response:",
+        text
+      );
+
+      let result;
+
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(
+          "Backend returned an invalid response:\n" +
+            text
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result.details ||
+            result.error ||
+            `Server returned ${response.status}`
+        );
+      }
+
+      console.log(
+        "Code Tour generated:",
+        result
+      );
+
+      setCodeTour(result);
+    } catch (error) {
+      console.error(
+        "CODE TOUR ERROR:",
+        error
+      );
+
+      alert(
+        "Could not generate Code Tour.\n\n" +
+          error.message
+      );
+    } finally {
+      setCodeTourLoading(false);
+    }
+  };
+
+  // ==========================================
+  // DOCUMENTATION GENERATOR
+  // ==========================================
+
+  const generateDocumentation =
+    async () => {
+      if (!data?.repositoryId) {
+        alert(
+          "Please analyze a repository first"
+        );
+
+        return;
+      }
+
+      try {
+        setDocumentationLoading(true);
+        setDocumentation(null);
+
+        console.log("================================");
+        console.log(
+          "GENERATING DOCUMENTATION"
+        );
+
+        console.log(
+          "Repository ID:",
+          data.repositoryId
+        );
+
+        const response =
+          await fetch(
+            "http://localhost:5000/api/documentation",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                repositoryId:
+                  data.repositoryId
+              })
+            }
+          );
+
+        const text =
+          await response.text();
+
+        console.log(
+          "Documentation response:",
+          text
+        );
+
+        let result;
+
+        try {
+          result =
+            JSON.parse(text);
+        } catch {
+          throw new Error(
+            "Backend returned an invalid response:\n" +
+              text
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            result.details ||
+              result.error ||
+              `Server returned ${response.status}`
+          );
+        }
+
+        console.log(
+          "Documentation generated:",
+          result
+        );
+
+        setDocumentation(result);
+      } catch (error) {
+        console.error(
+          "DOCUMENTATION ERROR:",
+          error
+        );
+
+        alert(
+          "Could not generate documentation.\n\n" +
+            error.message
+        );
+      } finally {
+        setDocumentationLoading(
+          false
+        );
+      }
+    };
+
+  // ==========================================
+  // DOCUMENTATION DRIFT DETECTOR
+  // ==========================================
+
+  const analyzeDocumentationDrift =
+    async () => {
+      if (!data?.repositoryId) {
+        alert(
+          "Please analyze a repository first"
+        );
+
+        return;
+      }
+
+      if (!repoPath.trim()) {
+        alert(
+          "Repository path is missing"
+        );
+
+        return;
+      }
+
+      try {
+        setDocumentationDriftLoading(
+          true
+        );
+
+        setDocumentationDrift(null);
+
+        console.log("================================");
+        console.log(
+          "ANALYZING DOCUMENTATION DRIFT"
+        );
+
+        console.log(
+          "Repository ID:",
+          data.repositoryId
+        );
+
+        const response =
+          await fetch(
+            "http://localhost:5000/api/documentation-drift",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                repositoryId:
+                  data.repositoryId,
+
+                projectPath:
+                  repoPath.trim()
+              })
+            }
+          );
+
+        const text =
+          await response.text();
+
+        console.log(
+          "Documentation drift response:",
+          text
+        );
+
+        let result;
+
+        try {
+          result =
+            JSON.parse(text);
+        } catch {
+          throw new Error(
+            "Backend returned an invalid response:\n" +
+              text
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            result.details ||
+              result.error ||
+              `Server returned ${response.status}`
+          );
+        }
+
+        console.log(
+          "Documentation drift analyzed"
+        );
+
+        console.log(
+          "Score:",
+          result.score
+        );
+
+        console.log(
+          "Issues:",
+          result.issues
+        );
+
+        setDocumentationDrift(
+          result
+        );
+      } catch (error) {
+        console.error(
+          "DOCUMENTATION DRIFT ERROR:",
+          error
+        );
+
+        alert(
+          "Could not analyze documentation drift.\n\n" +
+            error.message
+        );
+      } finally {
+        setDocumentationDriftLoading(
+          false
+        );
+      }
+    };
+
+  // ==========================================
+  // DEPENDENCY INTELLIGENCE
+  // ==========================================
+
+  const analyzeDependencies =
+    async () => {
+      if (!data?.repositoryId) {
+        alert(
+          "Please analyze a repository first"
+        );
+
+        return;
+      }
+
+      try {
+        setDependencyLoading(true);
+
+        setDependencyData(null);
+
+        console.log("================================");
+        console.log(
+          "ANALYZING DEPENDENCY INTELLIGENCE"
+        );
+
+        console.log(
+          "Repository ID:",
+          data.repositoryId
+        );
+
+        const response =
+          await fetch(
+            "http://localhost:5000/api/dependencies",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                repositoryId:
+                  data.repositoryId
+              })
+            }
+          );
+
+        const text =
+          await response.text();
+
+        console.log(
+          "Dependency response:",
+          text
+        );
+
+        let result;
+
+        try {
+          result =
+            JSON.parse(text);
+        } catch {
+          throw new Error(
+            "Backend returned an invalid response:\n" +
+              text
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            result.details ||
+              result.error ||
+              `Server returned ${response.status}`
+          );
+        }
+
+        console.log(
+          "Dependency Intelligence analyzed"
+        );
+
+        console.log(
+          "Dependency score:",
+          result.score
+        );
+
+        console.log(
+          "Missing dependencies:",
+          result.missing
+        );
+
+        console.log(
+          "Potentially unused:",
+          result.potentiallyUnused
+        );
+
+        setDependencyData(result);
+      } catch (error) {
+        console.error(
+          "DEPENDENCY INTELLIGENCE ERROR:",
+          error
+        );
+
+        alert(
+          "Could not analyze dependencies.\n\n" +
+            error.message
+        );
+      } finally {
+        setDependencyLoading(
+          false
+        );
+      }
+    };
 
   // ==========================================
   // UI
@@ -412,18 +856,42 @@ function App() {
           HEADER
           ====================================== */}
 
-      <header>
+      <header className="hero">
 
-        <h1>
-          RepoLens
-        </h1>
+        <div className="hero-glow hero-glow-one"></div>
+        <div className="hero-glow hero-glow-two"></div>
 
-        <p>
-          Understand your codebase.
-        </p>
+        <div className="hero-content">
+
+          <div className="hero-badge">
+            <span className="hero-badge-dot"></span>
+            AI-Powered Repository Intelligence
+          </div>
+
+          <h1>
+            Repo<span>Lens</span>
+          </h1>
+
+          <p className="hero-tagline">
+            Understand your codebase before you touch the code.
+          </p>
+
+          <p className="hero-description">
+            Scan a repository, uncover its architecture, ask questions,
+            generate documentation, and find codebase issues from one
+            intelligent workspace.
+          </p>
+
+          <div className="hero-capabilities">
+            <span>Repository Analysis</span>
+            <span>Architecture</span>
+            <span>AI Q&amp;A</span>
+            <span>Documentation</span>
+          </div>
+
+        </div>
 
       </header>
-
 
       <main>
 
@@ -431,51 +899,76 @@ function App() {
             REPOSITORY SCANNER
             ==================================== */}
 
-        <section className="scanner">
+        <section className="scanner scanner-shell">
 
-          <h2>
-            Analyze Repository
-          </h2>
+          <div className="scanner-intro">
+
+            <div className="scanner-eyebrow">
+              START HERE
+            </div>
+
+            <h2>
+              Analyze a Repository
+            </h2>
+
+            <p>
+              Give RepoLens the local path to a project and build
+              its intelligence dashboard.
+            </p>
+
+          </div>
 
           <div className="input-row">
 
-            <input
-              type="text"
-              placeholder="Enter repository path"
-              value={repoPath}
-              onChange={(e) =>
-                setRepoPath(
-                  e.target.value
-                )
-              }
-              onKeyDown={(e) => {
+            <div className="repo-input-wrapper">
 
-                if (
-                  e.key === "Enter"
-                ) {
-                  analyzeRepository();
+              <span className="repo-input-icon">
+                &gt;_
+              </span>
+
+              <input
+                type="text"
+                placeholder="e.g. Z:\Projects\my-app"
+                value={repoPath}
+                onChange={(e) =>
+                  setRepoPath(
+                    e.target.value
+                  )
                 }
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter"
+                  ) {
+                    analyzeRepository();
+                  }
+                }}
+              />
 
-              }}
-            />
+            </div>
 
             <button
+              className="analyze-button"
               onClick={
                 analyzeRepository
               }
               disabled={loading}
             >
-
               {loading
                 ? "Analyzing..."
-                : "Analyze"}
-
+                : "Analyze Repository →"}
             </button>
 
           </div>
 
-        </section>
+          <div className="scanner-hint">
+            <span>Local repository</span>
+            <span>•</span>
+            <span>No database required</span>
+            <span>•</span>
+            <span>Analysis runs through RepoLens</span>
+          </div>
 
+        </section>
 
         {/* ====================================
             DASHBOARD
@@ -485,6 +978,18 @@ function App() {
 
           <section className="dashboard">
 
+            <div className="dashboard-intro">
+              <div>
+                <span className="dashboard-eyebrow">
+                  REPOSITORY INTELLIGENCE
+                </span>
+                <h2>{data.analysis.projectName}</h2>
+                <p>
+                  Your codebase has been analyzed. Explore its health,
+                  architecture, documentation, dependencies, and source structure.
+                </p>
+              </div>
+            </div>
 
             {/* ==================================
                 ASK REPO LENS
@@ -509,7 +1014,6 @@ function App() {
 
               </div>
 
-
               <div className="ask-input-row">
 
                 <input
@@ -522,13 +1026,11 @@ function App() {
                     )
                   }
                   onKeyDown={(e) => {
-
                     if (
                       e.key === "Enter"
                     ) {
                       askRepoLens();
                     }
-
                   }}
                 />
 
@@ -538,17 +1040,12 @@ function App() {
                   }
                   disabled={asking}
                 >
-
                   {asking
                     ? "Thinking..."
                     : "Ask"}
-
                 </button>
 
               </div>
-
-
-              {/* ANSWER */}
 
               {answer && (
 
@@ -567,7 +1064,6 @@ function App() {
               )}
 
             </div>
-
 
             {/* ==================================
                 ARCHITECTURE EXPLAINER
@@ -591,7 +1087,6 @@ function App() {
 
                 </div>
 
-
                 <button
                   onClick={
                     explainArchitecture
@@ -600,17 +1095,12 @@ function App() {
                     architectureLoading
                   }
                 >
-
                   {architectureLoading
                     ? "Analyzing..."
                     : "Explain Architecture"}
-
                 </button>
 
               </div>
-
-
-              {/* ARCHITECTURE ANSWER */}
 
               {architectureAnswer && (
 
@@ -628,9 +1118,6 @@ function App() {
 
               )}
 
-
-              {/* DYNAMIC ARCHITECTURE GRAPH */}
-
               {architectureGraph && (
 
                 <ArchitectureDiagram
@@ -643,22 +1130,11 @@ function App() {
 
             </div>
 
-
-            {/* ==================================
-                PROJECT NAME
-                ================================== */}
-
-            <h2>
-              {data.analysis.projectName}
-            </h2>
-
-
             {/* ==================================
                 BASIC STATS
                 ================================== */}
 
             <div className="cards">
-
 
               <div className="card">
 
@@ -667,11 +1143,13 @@ function App() {
                 </h3>
 
                 <p>
-                  {data.scan.files.length}
+                  {
+                    data.scan.files
+                      .length
+                  }
                 </p>
 
               </div>
-
 
               <div className="card">
 
@@ -680,11 +1158,13 @@ function App() {
                 </h3>
 
                 <p>
-                  {data.scan.folders.length}
+                  {
+                    data.scan.folders
+                      .length
+                  }
                 </p>
 
               </div>
-
 
               <div className="card">
 
@@ -693,11 +1173,14 @@ function App() {
                 </h3>
 
                 <p>
-                  {data.analysis.languages.length}
+                  {
+                    data.analysis
+                      .languages
+                      .length
+                  }
                 </p>
 
               </div>
-
 
               <div className="card">
 
@@ -715,9 +1198,7 @@ function App() {
 
               </div>
 
-
             </div>
-
 
             {/* ==================================
                 REPOSITORY HEALTH
@@ -739,7 +1220,6 @@ function App() {
 
                 </div>
 
-
                 <div className="health-score">
 
                   {data.health.score}
@@ -752,12 +1232,10 @@ function App() {
 
               </div>
 
-
               <div className="health-progress">
 
                 <div
                   className="health-progress-bar"
-
                   style={{
                     width:
                       `${data.health.score}%`
@@ -765,7 +1243,6 @@ function App() {
                 />
 
               </div>
-
 
               <div className="health-stats">
 
@@ -786,7 +1263,6 @@ function App() {
               </div>
 
             </div>
-
 
             {/* ==================================
                 README CONSISTENCY
@@ -809,7 +1285,6 @@ function App() {
 
                 </div>
 
-
                 <div className="readme-score">
 
                   {data.readme.score}
@@ -821,7 +1296,6 @@ function App() {
                 </div>
 
               </div>
-
 
               <div className="readme-status">
 
@@ -848,7 +1322,6 @@ function App() {
 
               </div>
 
-
               {data.readme
                 .mismatches
                 .length > 0 && (
@@ -858,7 +1331,6 @@ function App() {
                   <h4>
                     Potential Issues
                   </h4>
-
 
                   {data.readme
                     .mismatches
@@ -872,10 +1344,8 @@ function App() {
                           className="mismatch-item"
                           key={index}
                         >
-
                           ⚠{" "}
                           {item.message}
-
                         </div>
 
                       )
@@ -885,11 +1355,7 @@ function App() {
 
               )}
 
-
               <div className="readme-tech">
-
-
-                {/* README TECHNOLOGIES */}
 
                 <div>
 
@@ -916,9 +1382,7 @@ function App() {
                                 technology
                               }
                             >
-
                               {technology}
-
                             </span>
 
                           )
@@ -937,9 +1401,6 @@ function App() {
                   </div>
 
                 </div>
-
-
-                {/* DETECTED TECHNOLOGIES */}
 
                 <div>
 
@@ -966,9 +1427,7 @@ function App() {
                                 technology
                               }
                             >
-
                               {technology}
-
                             </span>
 
                           )
@@ -988,11 +1447,1079 @@ function App() {
 
                 </div>
 
-
               </div>
 
             </div>
 
+            {/* ==================================
+                CODE TOUR
+                ================================== */}
+
+            <div className="code-tour-card">
+
+              <div className="code-tour-header">
+
+                <div>
+
+                  <h3>
+                    🧭 Developer Code Tour
+                  </h3>
+
+                  <p>
+                    Follow a recommended reading
+                    order to understand the repository.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <button
+                className="code-tour-button"
+                onClick={
+                  generateCodeTour
+                }
+                disabled={
+                  codeTourLoading
+                }
+              >
+                {codeTourLoading
+                  ? "Generating Code Tour..."
+                  : "Generate Code Tour"}
+              </button>
+
+              {codeTour && (
+
+                <div className="code-tour-results">
+
+                  {codeTour.introduction && (
+
+                    <div className="code-tour-intro">
+
+                      <h4>
+                        Recommended Reading Order
+                      </h4>
+
+                      <p>
+                        {codeTour.introduction}
+                      </p>
+
+                    </div>
+
+                  )}
+
+                  {codeTour.steps &&
+                    codeTour.steps.length > 0 && (
+
+                    <div className="code-tour-steps">
+
+                      {codeTour.steps.map(
+                        (
+                          step,
+                          index
+                        ) => (
+
+                          <div
+                            className="code-tour-step"
+                            key={
+                              step.path ||
+                              index
+                            }
+                          >
+
+                            <div className="code-tour-number">
+                              {index + 1}
+                            </div>
+
+                            <div className="code-tour-content">
+
+                              <div className="code-tour-path">
+                                {step.path}
+                              </div>
+
+                              {step.role && (
+
+                                <span className="code-tour-role">
+                                  {step.role}
+                                </span>
+
+                              )}
+
+                              {step.reason && (
+
+                                <p>
+                                  {step.reason}
+                                </p>
+
+                              )}
+
+                              {!step.reason &&
+                                step.description && (
+
+                                  <p>
+                                    {step.description}
+                                  </p>
+
+                                )}
+
+                            </div>
+
+                          </div>
+
+                        )
+                      )}
+
+                    </div>
+
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
+
+            {/* ==================================
+                DOCUMENTATION GENERATOR
+                ================================== */}
+
+            <div className="documentation-card">
+
+              <div className="documentation-header">
+
+                <div>
+
+                  <h3>
+                    📚 Documentation Generator
+                  </h3>
+
+                  <p>
+                    Generate structured Markdown
+                    documentation from the analyzed
+                    repository.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <button
+                className="documentation-button"
+                onClick={
+                  generateDocumentation
+                }
+                disabled={
+                  documentationLoading
+                }
+              >
+                {documentationLoading
+                  ? "Generating Documentation..."
+                  : "Generate Documentation"}
+              </button>
+
+              {documentation && (
+
+                <div className="documentation-results">
+
+                  <div className="documentation-meta">
+
+                    <h4>
+                      {documentation.projectName ||
+                        data.analysis.projectName}
+                    </h4>
+
+                    <span>
+                      Source:{" "}
+                      {documentation.source ||
+                        "deterministic"}
+                    </span>
+
+                  </div>
+
+                  <div className="documentation-preview">
+
+                    <pre>
+                      {documentation.markdown}
+                    </pre>
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </div>
+
+            {/* ==================================
+                DOCUMENTATION DRIFT DETECTOR
+                ================================== */}
+
+            <div className="drift-card">
+
+              <div className="drift-header">
+
+                <div>
+
+                  <h3>
+                    🔍 Documentation Drift Detector
+                  </h3>
+
+                  <p>
+                    Compare README claims with the
+                    actual repository.
+                  </p>
+
+                </div>
+
+                {documentationDrift && (
+
+                  <div className="drift-score">
+
+                    {documentationDrift.score}
+
+                    <span>
+                      /100
+                    </span>
+
+                  </div>
+
+                )}
+
+              </div>
+
+              <button
+                className="drift-button"
+                onClick={
+                  analyzeDocumentationDrift
+                }
+                disabled={
+                  documentationDriftLoading
+                }
+              >
+                {documentationDriftLoading
+                  ? "Analyzing Documentation..."
+                  : "Check Documentation Drift"}
+              </button>
+
+              {documentationDrift && (
+
+                <div className="drift-results">
+
+                  <div className="drift-summary">
+
+                    <h4>
+
+                      {documentationDrift.status ===
+                      "healthy"
+
+                        ? "✓ Documentation looks healthy"
+
+                        : documentationDrift.status ===
+                          "needs-attention"
+
+                        ? "⚠ Documentation needs attention"
+
+                        : "🚨 Significant documentation drift"}
+
+                    </h4>
+
+                    <p>
+                      {
+                        documentationDrift.summary
+                      }
+                    </p>
+
+                  </div>
+
+                  {documentationDrift.statistics && (
+
+                    <div className="drift-stats">
+
+                      <div className="drift-stat">
+
+                        <span>
+                          Issues
+                        </span>
+
+                        <strong>
+                          {
+                            documentationDrift
+                              .statistics
+                              .totalIssues
+                          }
+                        </strong>
+
+                      </div>
+
+                      <div className="drift-stat">
+
+                        <span>
+                          High
+                        </span>
+
+                        <strong>
+                          {
+                            documentationDrift
+                              .statistics
+                              .highSeverity
+                          }
+                        </strong>
+
+                      </div>
+
+                      <div className="drift-stat">
+
+                        <span>
+                          Medium
+                        </span>
+
+                        <strong>
+                          {
+                            documentationDrift
+                              .statistics
+                              .mediumSeverity
+                          }
+                        </strong>
+
+                      </div>
+
+                      <div className="drift-stat">
+
+                        <span>
+                          Low
+                        </span>
+
+                        <strong>
+                          {
+                            documentationDrift
+                              .statistics
+                              .lowSeverity
+                          }
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {documentationDrift.issues &&
+                    documentationDrift.issues.length >
+                      0 && (
+
+                    <div className="drift-issues">
+
+                      <h4>
+                        Detected Issues
+                      </h4>
+
+                      {documentationDrift.issues.map(
+                        (
+                          issue,
+                          index
+                        ) => (
+
+                          <div
+                            className="drift-issue"
+                            key={index}
+                          >
+
+                            <div className="drift-issue-top">
+
+                              <span
+                                className={`drift-severity ${issue.severity}`}
+                              >
+                                {issue.severity}
+                              </span>
+
+                              <span className="drift-type">
+                                {issue.type}
+                              </span>
+
+                            </div>
+
+                            <p>
+                              {issue.message}
+                            </p>
+
+                          </div>
+
+                        )
+                      )}
+
+                    </div>
+
+                  )}
+
+                  {documentationDrift.issues &&
+                    documentationDrift.issues.length ===
+                      0 && (
+
+                    <div className="drift-clean">
+                      ✓ No documentation drift detected.
+                    </div>
+
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
+
+            {/* ==================================
+                DEPENDENCY INTELLIGENCE
+                ================================== */}
+
+            <div className="dependency-intelligence-card">
+
+              <div className="dependency-intelligence-header">
+
+                <div>
+
+                  <h3>
+                    📦 Dependency Intelligence
+                  </h3>
+
+                  <p>
+                    Analyze dependency usage,
+                    missing packages, unused packages,
+                    and npm script relationships.
+                  </p>
+
+                </div>
+
+                {dependencyData && (
+
+                  <div className="dependency-score">
+
+                    {dependencyData.score}
+
+                    <span>
+                      /100
+                    </span>
+
+                  </div>
+
+                )}
+
+              </div>
+
+              <button
+                className="dependency-intelligence-button"
+                onClick={
+                  analyzeDependencies
+                }
+                disabled={
+                  dependencyLoading
+                }
+              >
+                {dependencyLoading
+                  ? "Analyzing Dependencies..."
+                  : "Analyze Dependencies"}
+              </button>
+
+              {dependencyData && (
+
+                <div className="dependency-intelligence-results">
+
+                  {/* SUMMARY */}
+
+                  <div className="dependency-summary">
+
+                    <h4>
+
+                      {dependencyData.status ===
+                      "healthy"
+
+                        ? "✓ Dependencies look healthy"
+
+                        : dependencyData.status ===
+                          "needs-attention"
+
+                        ? "⚠ Dependencies need attention"
+
+                        : "🚨 Dependency issues detected"}
+
+                    </h4>
+
+                    <p>
+                      {
+                        dependencyData.summary
+                      }
+                    </p>
+
+                  </div>
+
+                  {/* STATISTICS */}
+
+                  {dependencyData.statistics && (
+
+                    <div className="dependency-stats">
+
+                      <div className="dependency-stat">
+
+                        <span>
+                          Total
+                        </span>
+
+                        <strong>
+                          {
+                            dependencyData
+                              .statistics
+                              .totalDependencies
+                          }
+                        </strong>
+
+                      </div>
+
+                      <div className="dependency-stat">
+
+                        <span>
+                          Used
+                        </span>
+
+                        <strong>
+                          {
+                            dependencyData
+                              .statistics
+                              .usedDependencies
+                          }
+                        </strong>
+
+                      </div>
+
+                      <div className="dependency-stat">
+
+                        <span>
+                          Potentially Unused
+                        </span>
+
+                        <strong>
+                          {
+                            dependencyData
+                              .statistics
+                              .unusedDependencies
+                          }
+                        </strong>
+
+                      </div>
+
+                      <div className="dependency-stat">
+
+                        <span>
+                          Missing
+                        </span>
+
+                        <strong>
+                          {
+                            dependencyData
+                              .statistics
+                              .missingDependencies
+                          }
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* PRODUCTION DEPENDENCIES */}
+
+                  {dependencyData.production &&
+                    dependencyData.production.length >
+                      0 && (
+
+                    <div className="dependency-analysis-section">
+
+                      <h4>
+                        Production Dependencies
+                      </h4>
+
+                      <div className="dependency-analysis-list">
+
+                        {dependencyData.production.map(
+                          (
+                            dependency
+                          ) => (
+
+                            <div
+                              className="dependency-analysis-item"
+                              key={
+                                dependency.name
+                              }
+                            >
+
+                              <div className="dependency-analysis-top">
+
+                                <strong>
+                                  {dependency.name}
+                                </strong>
+
+                                <span
+                                  className={
+                                    dependency.used
+                                      ? "dependency-used"
+                                      : "dependency-unused"
+                                  }
+                                >
+                                  {dependency.used
+                                    ? "Used"
+                                    : "Not detected"}
+                                </span>
+
+                              </div>
+
+                              {dependency.used && (
+
+                                <p>
+                                  Imported{" "}
+                                  {
+                                    dependency.importCount
+                                  }{" "}
+                                  time
+                                  {dependency.importCount !==
+                                  1
+                                    ? "s"
+                                    : ""}{" "}
+                                  across{" "}
+                                  {
+                                    dependency.files
+                                      .length
+                                  }{" "}
+                                  file
+                                  {dependency.files
+                                    .length !== 1
+                                    ? "s"
+                                    : ""}.
+                                </p>
+
+                              )}
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* DEVELOPMENT DEPENDENCIES */}
+
+                  {dependencyData.development &&
+                    dependencyData.development.length >
+                      0 && (
+
+                    <div className="dependency-analysis-section">
+
+                      <h4>
+                        Development Dependencies
+                      </h4>
+
+                      <div className="dependency-analysis-list">
+
+                        {dependencyData.development.map(
+                          (
+                            dependency
+                          ) => (
+
+                            <div
+                              className="dependency-analysis-item"
+                              key={
+                                dependency.name
+                              }
+                            >
+
+                              <div className="dependency-analysis-top">
+
+                                <strong>
+                                  {dependency.name}
+                                </strong>
+
+                                <span
+                                  className={
+                                    dependency.used
+                                      ? "dependency-used"
+                                      : "dependency-unused"
+                                  }
+                                >
+                                  {dependency.used
+                                    ? "Used"
+                                    : "Not detected"}
+                                </span>
+
+                              </div>
+
+                              {dependency.used && (
+
+                                <p>
+                                  Imported{" "}
+                                  {
+                                    dependency.importCount
+                                  }{" "}
+                                  time
+                                  {dependency.importCount !==
+                                  1
+                                    ? "s"
+                                    : ""}{" "}
+                                  across{" "}
+                                  {
+                                    dependency.files
+                                      .length
+                                  }{" "}
+                                  file
+                                  {dependency.files
+                                    .length !== 1
+                                    ? "s"
+                                    : ""}.
+                                </p>
+
+                              )}
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* POTENTIALLY UNUSED */}
+
+                  {dependencyData.potentiallyUnused &&
+                    dependencyData.potentiallyUnused
+                      .length > 0 && (
+
+                    <div className="dependency-analysis-section">
+
+                      <h4>
+                        ⚠ Potentially Unused Dependencies
+                      </h4>
+
+                      <p className="dependency-section-description">
+                        These dependencies are declared
+                        but were not detected in source
+                        imports. They may still be used
+                        dynamically or through configuration.
+                      </p>
+
+                      <div className="dependency-warning-list">
+
+                        {dependencyData.potentiallyUnused.map(
+                          (
+                            dependency
+                          ) => (
+
+                            <div
+                              className="dependency-warning-item"
+                              key={
+                                dependency.name
+                              }
+                            >
+
+                              <div>
+
+                                <strong>
+                                  {
+                                    dependency.name
+                                  }
+                                </strong>
+
+                                <span>
+                                  {
+                                    dependency.category
+                                  }
+                                </span>
+
+                              </div>
+
+                              <p>
+                                {
+                                  dependency.message
+                                }
+                              </p>
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* MISSING DEPENDENCIES */}
+
+                  {dependencyData.missing &&
+                    dependencyData.missing
+                      .length > 0 && (
+
+                    <div className="dependency-analysis-section">
+
+                      <h4>
+                        🚨 Missing Dependencies
+                      </h4>
+
+                      <p className="dependency-section-description">
+                        These packages are imported by
+                        the source code but are not declared
+                        in package.json.
+                      </p>
+
+                      <div className="dependency-missing-list">
+
+                        {dependencyData.missing.map(
+                          (
+                            dependency
+                          ) => (
+
+                            <div
+                              className="dependency-missing-item"
+                              key={
+                                dependency.name
+                              }
+                            >
+
+                              <div className="dependency-missing-top">
+
+                                <strong>
+                                  {
+                                    dependency.name
+                                  }
+                                </strong>
+
+                                <span>
+                                  HIGH
+                                </span>
+
+                              </div>
+
+                              <p>
+                                {
+                                  dependency.message
+                                }
+                              </p>
+
+                              {dependency.files &&
+                                dependency.files.length >
+                                  0 && (
+
+                                <div className="dependency-files">
+
+                                  <span>
+                                    Imported from:
+                                  </span>
+
+                                  {dependency.files.map(
+                                    (
+                                      file
+                                    ) => (
+
+                                      <code
+                                        key={file}
+                                      >
+                                        {file}
+                                      </code>
+
+                                    )
+                                  )}
+
+                                </div>
+
+                              )}
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* DEV DEPENDENCY RUNTIME USAGE */}
+
+                  {dependencyData.devDependencyRuntimeUsage &&
+                    dependencyData
+                      .devDependencyRuntimeUsage
+                      .length > 0 && (
+
+                    <div className="dependency-analysis-section">
+
+                      <h4>
+                        ⚠ Development Dependencies Used at Runtime
+                      </h4>
+
+                      <p className="dependency-section-description">
+                        These packages are declared as
+                        development dependencies but were
+                        detected in regular source files.
+                      </p>
+
+                      <div className="dependency-warning-list">
+
+                        {dependencyData
+                          .devDependencyRuntimeUsage
+                          .map(
+                            (
+                              dependency
+                            ) => (
+
+                              <div
+                                className="dependency-warning-item"
+                                key={
+                                  dependency.name
+                                }
+                              >
+
+                                <div>
+
+                                  <strong>
+                                    {
+                                      dependency.name
+                                    }
+                                  </strong>
+
+                                  <span>
+                                    devDependency
+                                  </span>
+
+                                </div>
+
+                                <p>
+                                  This dependency appears
+                                  to be used by runtime
+                                  source code.
+                                </p>
+
+                              </div>
+
+                            )
+                          )}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* NPM SCRIPT INTELLIGENCE */}
+
+                  {dependencyData.scriptUsage &&
+                    dependencyData.scriptUsage.length >
+                      0 && (
+
+                    <div className="dependency-analysis-section">
+
+                      <h4>
+                        ⚙️ NPM Script Intelligence
+                      </h4>
+
+                      <div className="script-analysis-list">
+
+                        {dependencyData.scriptUsage.map(
+                          (
+                            script
+                          ) => (
+
+                            <div
+                              className="script-analysis-item"
+                              key={
+                                script.script
+                              }
+                            >
+
+                              <div className="script-analysis-top">
+
+                                <strong>
+                                  npm run{" "}
+                                  {script.script}
+                                </strong>
+
+                                <code>
+                                  {script.command}
+                                </code>
+
+                              </div>
+
+                              {script.dependencies &&
+                                script.dependencies.length >
+                                  0 ? (
+
+                                <div className="script-dependencies">
+
+                                  <span>
+                                    Related dependencies:
+                                  </span>
+
+                                  {script.dependencies.map(
+                                    (
+                                      dependency
+                                    ) => (
+
+                                      <span
+                                        className="script-dependency-tag"
+                                        key={
+                                          dependency
+                                        }
+                                      >
+                                        {dependency}
+                                      </span>
+
+                                    )
+                                  )}
+
+                                </div>
+
+                              ) : (
+
+                                <span className="script-no-dependencies">
+                                  No direct dependency
+                                  relationship detected
+                                </span>
+
+                              )}
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* CLEAN STATE */}
+
+                  {dependencyData.missing?.length === 0 &&
+                    dependencyData.potentiallyUnused
+                      ?.length === 0 && (
+
+                    <div className="dependency-clean">
+                      ✓ No missing or potentially unused
+                      dependencies detected.
+                    </div>
+
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
 
             {/* ==================================
                 LANGUAGES
@@ -1018,7 +2545,6 @@ function App() {
 
             </div>
 
-
             {/* ==================================
                 FRAMEWORKS
                 ================================== */}
@@ -1042,7 +2568,6 @@ function App() {
               </p>
 
             </div>
-
 
             {/* ==================================
                 TOOLS
@@ -1068,20 +2593,15 @@ function App() {
 
             </div>
 
-
             {/* ==================================
                 DEPENDENCIES
                 ================================== */}
 
-            <div
-              className=
-                "info-section dependency-section"
-            >
+            <div className="info-section dependency-section">
 
               <h3>
                 Dependencies
               </h3>
-
 
               {/* PRODUCTION */}
 
@@ -1090,7 +2610,6 @@ function App() {
                 <h4>
                   Production Dependencies
                 </h4>
-
 
                 {data.analysis.dependencies
                   .length > 0 ? (
@@ -1105,16 +2624,12 @@ function App() {
                         ) => (
 
                           <span
-                            className=
-                              "dependency-tag"
-
+                            className="dependency-tag"
                             key={
                               dependency
                             }
                           >
-
                             {dependency}
-
                           </span>
 
                         )
@@ -1132,7 +2647,6 @@ function App() {
 
               </div>
 
-
               {/* DEVELOPMENT */}
 
               <div className="dependency-group">
@@ -1140,7 +2654,6 @@ function App() {
                 <h4>
                   Development Dependencies
                 </h4>
-
 
                 {data.analysis
                   .devDependencies
@@ -1156,16 +2669,12 @@ function App() {
                         ) => (
 
                           <span
-                            className=
-                              "dependency-tag"
-
+                            className="dependency-tag"
                             key={
                               dependency
                             }
                           >
-
                             {dependency}
-
                           </span>
 
                         )
@@ -1185,7 +2694,6 @@ function App() {
 
             </div>
 
-
             {/* ==================================
                 PROJECT STRUCTURE
                 ================================== */}
@@ -1200,14 +2708,12 @@ function App() {
                 files={
                   data.scan.files
                 }
-
                 folders={
                   data.scan.folders
                 }
               />
 
             </div>
-
 
           </section>
 

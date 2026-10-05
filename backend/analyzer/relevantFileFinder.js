@@ -20,7 +20,6 @@ const stopWords = new Set([
   "from",
   "into",
   "about",
-  "does",
   "can",
   "you",
   "tell",
@@ -42,6 +41,9 @@ const stopWords = new Set([
 // ==========================================
 
 const intentRules = [
+  // ------------------------------------------
+  // REPOSITORY SCANNING
+  // ------------------------------------------
   {
     keywords: [
       "scan",
@@ -54,12 +56,13 @@ const intentRules = [
     ],
 
     paths: [
-      "scanner",
-      "server",
-      "sourceanalyzer"
+      "scanner"
     ]
   },
 
+  // ------------------------------------------
+  // REPOSITORY HEALTH
+  // ------------------------------------------
   {
     keywords: [
       "health",
@@ -74,6 +77,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // README / DOCUMENTATION
+  // ------------------------------------------
   {
     keywords: [
       "readme",
@@ -88,6 +94,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // PROJECT / TECHNOLOGY
+  // ------------------------------------------
   {
     keywords: [
       "project",
@@ -104,6 +113,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // FILE TREE / PROJECT STRUCTURE
+  // ------------------------------------------
   {
     keywords: [
       "file tree",
@@ -120,6 +132,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // FRONTEND
+  // ------------------------------------------
   {
     keywords: [
       "frontend",
@@ -137,6 +152,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // BACKEND / API
+  // ------------------------------------------
   {
     keywords: [
       "backend",
@@ -154,6 +172,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // ASK REPOLENS
+  // ------------------------------------------
   {
     keywords: [
       "ask",
@@ -170,6 +191,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // SOURCE CODE / CODE ANALYSIS
+  // ------------------------------------------
   {
     keywords: [
       "source code",
@@ -184,6 +208,9 @@ const intentRules = [
     ]
   },
 
+  // ------------------------------------------
+  // CONTEXT GENERATION
+  // ------------------------------------------
   {
     keywords: [
       "context",
@@ -203,7 +230,6 @@ const intentRules = [
 // ==========================================
 
 function tokenizeQuestion(question) {
-
   return question
     .toLowerCase()
     .replace(/[^\w\s.-]/g, " ")
@@ -214,7 +240,6 @@ function tokenizeQuestion(question) {
         word.length > 2 &&
         !stopWords.has(word)
     );
-
 }
 
 // ==========================================
@@ -222,14 +247,12 @@ function tokenizeQuestion(question) {
 // ==========================================
 
 function detectIntents(question) {
-
   const normalized =
     question.toLowerCase();
 
   const intents = [];
 
   for (const rule of intentRules) {
-
     const matched =
       rule.keywords.some(
         (keyword) =>
@@ -239,7 +262,6 @@ function detectIntents(question) {
     if (matched) {
       intents.push(rule);
     }
-
   }
 
   return intents;
@@ -253,21 +275,17 @@ function calculatePathScore(
   filePath,
   tokens
 ) {
-
   const normalizedPath =
     filePath.toLowerCase();
 
   let score = 0;
 
   for (const token of tokens) {
-
-    // Exact filename/path token
     if (
       normalizedPath.includes(token)
     ) {
       score += 8;
     }
-
   }
 
   return score;
@@ -281,22 +299,17 @@ function calculateContentScore(
   content,
   tokens
 ) {
-
   const normalizedContent =
     content.toLowerCase();
 
   let score = 0;
 
   for (const token of tokens) {
-
     if (
       normalizedContent.includes(token)
     ) {
-
       score += 2;
-
     }
-
   }
 
   return score;
@@ -310,28 +323,21 @@ function calculateIntentScore(
   filePath,
   intents
 ) {
-
   const normalizedPath =
     filePath.toLowerCase();
 
   let score = 0;
 
   for (const intent of intents) {
-
     for (const targetPath of intent.paths) {
-
       if (
         normalizedPath.includes(
           targetPath.toLowerCase()
         )
       ) {
-
         score += 15;
-
       }
-
     }
-
   }
 
   return score;
@@ -344,7 +350,6 @@ function calculateIntentScore(
 function calculateFileTypeScore(
   filePath
 ) {
-
   const normalizedPath =
     filePath.toLowerCase();
 
@@ -356,9 +361,7 @@ function calculateFileTypeScore(
       "server.js"
     )
   ) {
-
     score += 3;
-
   }
 
   // Main frontend entry point
@@ -367,9 +370,7 @@ function calculateFileTypeScore(
       "app.jsx"
     )
   ) {
-
     score += 3;
-
   }
 
   // Analyzer files
@@ -378,9 +379,192 @@ function calculateFileTypeScore(
       "analyzer"
     )
   ) {
-
     score += 2;
+  }
 
+  return score;
+}
+
+// ==========================================
+// SPECIAL INTENT SCORE
+// ==========================================
+
+function calculateSpecialIntentScore(
+  question,
+  filePath
+) {
+  const normalizedQuestion =
+    question.toLowerCase();
+
+  const normalizedPath =
+    filePath.toLowerCase();
+
+  let score = 0;
+
+  // ==========================================
+  // REPOSITORY SCANNING
+  // ==========================================
+
+  const scanningQuestion =
+    /\b(scan|scanning|scanner|repository scan|discover|discovering)\b/i.test(
+      normalizedQuestion
+    );
+
+  if (scanningQuestion) {
+    // scanner.js is the actual scanning logic
+    if (
+      normalizedPath.includes(
+        "scanner"
+      )
+    ) {
+      score += 100;
+    }
+
+    // server.js only starts/uses the backend
+    if (
+      normalizedPath.endsWith(
+        "server.js"
+      )
+    ) {
+      score -= 30;
+    }
+
+    // sourceAnalyzer is not the repository scanner
+    if (
+      normalizedPath.includes(
+        "sourceanalyzer"
+      )
+    ) {
+      score -= 10;
+    }
+  }
+
+  // ==========================================
+  // BACKEND ARCHITECTURE
+  // ==========================================
+
+  const backendQuestion =
+    /\bbackend\b/i.test(
+      normalizedQuestion
+    );
+
+  if (backendQuestion) {
+    // server.js is the main backend entry point
+    if (
+      normalizedPath.endsWith(
+        "server.js"
+      )
+    ) {
+      score += 100;
+    }
+
+    // Routes are part of the backend
+    if (
+      normalizedPath.includes(
+        "routes"
+      )
+    ) {
+      score += 20;
+    }
+
+    // Ask route is one backend route
+    if (
+      normalizedPath.includes(
+        "askroute"
+      )
+    ) {
+      score += 10;
+    }
+  }
+
+  // ==========================================
+  // ASK REPOLENS
+  // ==========================================
+
+  const askQuestion =
+    normalizedQuestion.includes(
+      "ask repolens"
+    ) ||
+    normalizedQuestion.includes(
+      "ask repo"
+    ) ||
+    (
+      normalizedQuestion.includes(
+        "question"
+      ) &&
+      normalizedQuestion.includes(
+        "answer"
+      )
+    );
+
+  if (askQuestion) {
+    if (
+      normalizedPath.includes(
+        "askroute"
+      )
+    ) {
+      score += 80;
+    }
+
+    if (
+      normalizedPath.includes(
+        "codebaseai"
+      )
+    ) {
+      score += 60;
+    }
+
+    if (
+      normalizedPath.includes(
+        "relevantfilefinder"
+      )
+    ) {
+      score += 40;
+    }
+  }
+
+  // ==========================================
+  // FILE TREE
+  // ==========================================
+
+  const fileTreeQuestion =
+    normalizedQuestion.includes(
+      "file tree"
+    ) ||
+    normalizedQuestion.includes(
+      "folder tree"
+    ) ||
+    normalizedQuestion.includes(
+      "project structure"
+    ) ||
+    normalizedQuestion.includes(
+      "repository structure"
+    );
+
+  if (fileTreeQuestion) {
+    if (
+      normalizedPath.includes(
+        "filetree"
+      )
+    ) {
+      score += 80;
+    }
+
+    if (
+      normalizedPath.endsWith(
+        "app.jsx"
+      )
+    ) {
+      score += 50;
+    }
+
+    if (
+      normalizedPath.includes(
+        "scanner"
+      )
+    ) {
+      score += 20;
+    }
   }
 
   return score;
@@ -394,7 +578,6 @@ function calculateScore(
   question,
   file
 ) {
-
   const tokens =
     tokenizeQuestion(question);
 
@@ -424,18 +607,26 @@ function calculateScore(
       file.path
     );
 
+  const specialIntentScore =
+    calculateSpecialIntentScore(
+      question,
+      file.path
+    );
+
   const totalScore =
     pathScore +
     contentScore +
     intentScore +
-    fileTypeScore;
+    fileTypeScore +
+    specialIntentScore;
 
   return {
     totalScore,
     pathScore,
     contentScore,
     intentScore,
-    fileTypeScore
+    fileTypeScore,
+    specialIntentScore
   };
 }
 
@@ -447,29 +638,23 @@ function findRelevantFiles(
   question,
   sourceFiles
 ) {
-
   if (
     !question ||
     !sourceFiles ||
     !Array.isArray(sourceFiles)
   ) {
-
     return [];
-
   }
 
   const results = [];
 
   for (const file of sourceFiles) {
-
     if (
       !file ||
       !file.path ||
       typeof file.content !== "string"
     ) {
-
       continue;
-
     }
 
     const scores =
@@ -481,9 +666,7 @@ function findRelevantFiles(
     if (
       scores.totalScore > 0
     ) {
-
       results.push({
-
         path: file.path,
 
         score:
@@ -492,16 +675,23 @@ function findRelevantFiles(
         content: file.content,
 
         scoreBreakdown: {
-          path: scores.pathScore,
-          content: scores.contentScore,
-          intent: scores.intentScore,
-          fileType: scores.fileTypeScore
+          path:
+            scores.pathScore,
+
+          content:
+            scores.contentScore,
+
+          intent:
+            scores.intentScore,
+
+          fileType:
+            scores.fileTypeScore,
+
+          specialIntent:
+            scores.specialIntentScore
         }
-
       });
-
     }
-
   }
 
   // ==========================================
@@ -510,23 +700,21 @@ function findRelevantFiles(
 
   results.sort(
     (a, b) => {
-
       if (
         b.score !== a.score
       ) {
-
-        return b.score - a.score;
-
+        return (
+          b.score -
+          a.score
+        );
       }
 
-      // Tie breaker:
-      // shorter paths are usually
+      // Shorter paths are usually
       // more specific
       return (
         a.path.length -
         b.path.length
       );
-
     }
   );
 
@@ -535,8 +723,11 @@ function findRelevantFiles(
   // ==========================================
 
   return results.slice(0, 5);
-
 }
+
+// ==========================================
+// EXPORT
+// ==========================================
 
 module.exports = {
   findRelevantFiles

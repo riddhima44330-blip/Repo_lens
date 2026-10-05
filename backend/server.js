@@ -33,6 +33,13 @@ const {
 const askRoute = require("./routes/askRoute");
 const architectureRoute =
   require("./routes/architectureRoute");
+const codeTourRoute =
+  require("./routes/codeTourRoute");
+const documentationRoute =
+  require("./routes/documentationRoute");
+const driftRoute = require("./routes/driftRoute");
+const dependencyRoute =
+  require("./routes/dependencyRoute");
 
 const app = express();
 
@@ -56,6 +63,13 @@ app.use(
 
 app.use("/api", askRoute);
 app.use("/api", architectureRoute);
+app.use("/api", codeTourRoute);
+app.use("/api", documentationRoute);
+app.use("/api", driftRoute);
+app.use(
+  "/api",
+  dependencyRoute
+);
 
 // ==========================================
 // ANALYZE REPOSITORY
