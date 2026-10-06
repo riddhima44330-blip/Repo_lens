@@ -127,6 +127,15 @@ function extractImports(content) {
       const packageName =
         getPackageName(match[1]);
 
+      // Prevent false positives caused by
+      // mentioning "package" in analyzer text.
+      if (
+        packageName === "package" ||
+        packageName === "package.json"
+      ) {
+        continue;
+      }
+
       if (
         packageName &&
         !BUILTIN_MODULES.has(packageName)
@@ -463,7 +472,6 @@ function analyzeDependencyGroup(
 
       type,
 
-      // Frontend compatibility
       category:
         type === "production"
           ? "production"
@@ -479,7 +487,6 @@ function analyzeDependencyGroup(
       usageCount:
         relevantUsages.length,
 
-      // Existing frontend expects these
       importCount:
         relevantUsages.length,
 
@@ -657,6 +664,7 @@ function analyzeDependencies(context) {
 
   usageMap.forEach(
     (usages, packageName) => {
+
       // Already declared
       if (
         allDeclared.has(
@@ -710,7 +718,6 @@ function analyzeDependencies(context) {
           message:
             `"${packageName}" is imported in the repository but is not declared in package.json.`,
 
-          // Frontend expects files
           files,
 
           importedFrom:
