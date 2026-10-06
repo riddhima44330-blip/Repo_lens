@@ -56,75 +56,56 @@ async function downloadRepository(repositoryUrl) {
     recursive: true
   });
 
-  const branches = ["main", "master"];
+  // RepoLens currently supports the main branch.
+  const archiveUrl =
+    `https://codeload.github.com/${owner}/${repo}/tar.gz/refs/heads/main`;
 
-  let downloaded = false;
-  let lastError = "";
+  console.log(
+    "Downloading from:",
+    archiveUrl
+  );
 
-  for (const branch of branches) {
-
-    const archiveUrl =
-      `https://codeload.github.com/${owner}/${repo}/tar.gz/refs/heads/${branch}`;
-
-    console.log(
-      `Downloading from: ${archiveUrl}`
+  try {
+    const response = await fetch(
+      archiveUrl,
+      {
+        headers: {
+          "User-Agent": "RepoLens"
+        }
+      }
     );
 
-    try {
+    console.log(
+      "GitHub response:",
+      response.status,
+      response.statusText
+    );
 
-      const response = await fetch(
-        archiveUrl,
-        {
-          headers: {
-            "User-Agent": "RepoLens"
-          }
-        }
-      );
+    if (!response.ok) {
+      fs.rmSync(tempDir, {
+        recursive: true,
+        force: true
+      });
 
-      console.log(
-        `GitHub response for ${branch}:`,
-        response.status,
-        response.statusText
-      );
-
-      if (!response.ok) {
-
-        lastError =
-          `GitHub returned HTTP ${response.status} ${response.statusText} for branch ${branch}`;
-
-        continue;
-      }
-
-      const buffer =
-        Buffer.from(
-          await response.arrayBuffer()
-        );
-
-      fs.writeFileSync(
-        archivePath,
-        buffer
-      );
-
-      downloaded = true;
-
-      console.log(
-        `Repository downloaded successfully from ${branch}`
-      );
-
-      break;
-
-    } catch (error) {
-
-      lastError =
-        `Download failed for ${branch}: ${error.message}`;
-
-      console.error(
-        lastError
+      throw new Error(
+        `GitHub returned HTTP ${response.status} ${response.statusText}`
       );
     }
-  }
 
-  if (!downloaded) {
+    const buffer = Buffer.from(
+      await response.arrayBuffer()
+    );
+
+    fs.writeFileSync(
+      archivePath,
+      buffer
+    );
+
+    console.log(
+      "Repository downloaded successfully."
+    );
+
+  } catch (error) {
 
     fs.rmSync(tempDir, {
       recursive: true,
@@ -132,20 +113,15 @@ async function downloadRepository(repositoryUrl) {
     });
 
     throw new Error(
-      `Could not download GitHub repository. ${lastError}`
+      `Could not download GitHub repository. ${error.message}`
     );
   }
-
-  // ==========================================
-  // EXTRACT
-  // ==========================================
 
   console.log(
     "Extracting repository..."
   );
 
   try {
-
     execFileSync(
       "tar",
       [
@@ -171,17 +147,12 @@ async function downloadRepository(repositoryUrl) {
     );
   }
 
-  // ==========================================
-  // FIND REPOSITORY DIRECTORY
-  // ==========================================
-
-  const items =
-    fs.readdirSync(
-      extractDir,
-      {
-        withFileTypes: true
-      }
-    );
+  const items = fs.readdirSync(
+    extractDir,
+    {
+      withFileTypes: true
+    }
+  );
 
   const repositoryDirectory =
     items.find(
@@ -200,11 +171,10 @@ async function downloadRepository(repositoryUrl) {
     );
   }
 
-  const projectPath =
-    path.join(
-      extractDir,
-      repositoryDirectory.name
-    );
+  const projectPath = path.join(
+    extractDir,
+    repositoryDirectory.name
+  );
 
   console.log(
     "Repository extracted to:",
