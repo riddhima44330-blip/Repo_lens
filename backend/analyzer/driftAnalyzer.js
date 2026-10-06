@@ -1,6 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 
+// ==========================================
+// HELPERS
+// ==========================================
+
 function normalize(value) {
   return String(value || "")
     .replace(/\\/g, "/")
@@ -12,7 +16,38 @@ function unique(values) {
   return [...new Set(values)];
 }
 
-function findReadme(projectPath) {
+// ==========================================
+// FIND README
+// ==========================================
+
+function findReadme(projectPath, scan) {
+  // First use the scanner result.
+  // This is important for downloaded GitHub repositories.
+
+  const scannedFiles = scan?.files || [];
+
+  const readmeFromScan = scannedFiles.find((file) => {
+    const filePath =
+      typeof file === "string"
+        ? file
+        : file?.path || "";
+
+    return normalize(filePath) === "readme.md";
+  });
+
+  if (readmeFromScan) {
+    const filePath =
+      typeof readmeFromScan === "string"
+        ? readmeFromScan
+        : readmeFromScan.path;
+
+    return path.join(
+      projectPath,
+      filePath
+    );
+  }
+
+  // Fallback: check common README names
   const candidates = [
     "README.md",
     "readme.md",
@@ -52,25 +87,25 @@ function normalizeTechnologyName(value) {
 
     "vite.js": "vite",
 
-    "mongodb": "mongodb",
-    "mongo": "mongodb",
+    mongodb: "mongodb",
+    mongo: "mongodb",
 
-    "postgres": "postgresql",
-    "postgresql": "postgresql",
+    postgres: "postgresql",
+    postgresql: "postgresql",
 
-    "mysql": "mysql",
+    mysql: "mysql",
 
-    "javascript": "javascript",
-    "js": "javascript",
+    javascript: "javascript",
+    js: "javascript",
 
-    "typescript": "typescript",
-    "ts": "typescript",
+    typescript: "typescript",
+    ts: "typescript",
 
-    "python": "python",
-    "py": "python",
+    python: "python",
+    py: "python",
 
-    "html": "html",
-    "css": "css"
+    html: "html",
+    css: "css"
   };
 
   return aliases[tech] || tech;
@@ -94,23 +129,25 @@ function extractTechnologyClaims(
     ...(analysis.devDependencies || [])
   ]);
 
-  knownTechnologies.forEach((technology) => {
-    const normalized = normalizeTechnologyName(
-      technology
-    );
+  const readmeLower =
+    readmeContent.toLowerCase();
 
-    if (
-      normalized &&
-      readmeContent
-        .toLowerCase()
-        .includes(normalized)
-    ) {
-      mentioned.push(normalized);
+  knownTechnologies.forEach(
+    (technology) => {
+      const normalized =
+        normalizeTechnologyName(
+          technology
+        );
+
+      if (
+        normalized &&
+        readmeLower.includes(normalized)
+      ) {
+        mentioned.push(normalized);
+      }
     }
-  });
+  );
 
-  // Also look for common technologies that
-  // may be mentioned in README but not detected.
   const commonTechnologies = [
     "react",
     "express",
@@ -134,17 +171,21 @@ function extractTechnologyClaims(
     "rest api"
   ];
 
-  commonTechnologies.forEach((technology) => {
-    if (
-      readmeContent
-        .toLowerCase()
-        .includes(technology)
-    ) {
-      mentioned.push(
-        normalizeTechnologyName(technology)
-      );
+  commonTechnologies.forEach(
+    (technology) => {
+      if (
+        readmeLower.includes(
+          technology
+        )
+      ) {
+        mentioned.push(
+          normalizeTechnologyName(
+            technology
+          )
+        );
+      }
     }
-  });
+  );
 
   return unique(mentioned);
 }
@@ -160,7 +201,6 @@ function extractReferencedPaths(
 
   const patterns = [
     /`([^`]+\.(?:js|jsx|ts|tsx|py|java|cpp|c|cs|go|rs|json|md|css|html))`/gi,
-
     /`([^`]+\/[^`]+)`/gi
   ];
 
@@ -168,9 +208,11 @@ function extractReferencedPaths(
     let match;
 
     while (
-      (match = pattern.exec(readmeContent)) !== null
+      (match =
+        pattern.exec(readmeContent)) !== null
     ) {
-      const value = match[1].trim();
+      const value =
+        match[1].trim();
 
       if (
         value &&
@@ -197,47 +239,86 @@ function checkReferencedPaths(
   const issues = [];
 
   const scannedFiles = new Set(
-    (scan.files || []).map(normalize)
+    (scan.files || []).map((file) => {
+      const filePath =
+        typeof file === "string"
+          ? file
+          : file?.path || "";
+
+      return normalize(filePath);
+    })
   );
 
   const scannedFolders = new Set(
-    (scan.folders || []).map(normalize)
+    (scan.folders || []).map((folder) => {
+      const folderPath =
+        typeof folder === "string"
+          ? folder
+          : folder?.path || "";
+
+      return normalize(folderPath);
+    })
   );
 
-  references.forEach((reference) => {
-    const normalizedReference =
-      normalize(reference)
-        .replace(/^\.\/+/, "");
+  references.forEach(
+    (reference) => {
+      const normalizedReference =
+        normalize(reference)
+          .replace(/^\.\//, "");
 
-    const fileExists =
-      scannedFiles.has(normalizedReference) ||
-      fs.existsSync(
-        path.join(
-          projectPath,
+      /*
+       * Do not treat a generic filename such as
+       * "package.json" as missing when the repository
+       * contains that file inside a subdirectory.
+       */
+
+      const fileName =
+        path.basename(
           normalizedReference
-        )
-      );
+        );
 
-    const folderExists =
-      scannedFolders.has(normalizedReference) ||
-      fs.existsSync(
-        path.join(
-          projectPath,
+      const fileExists =
+        scannedFiles.has(
           normalizedReference
-        )
-      );
+        ) ||
+        [...scannedFiles].some(
+          (filePath) =>
+            path.basename(filePath) ===
+            fileName
+        ) ||
+        fs.existsSync(
+          path.join(
+            projectPath,
+            normalizedReference
+          )
+        );
 
-    if (!fileExists && !folderExists) {
-      issues.push({
-        type: "missing-path",
-        severity: "high",
-        message:
-          `README references "${reference}", ` +
-          `but that path was not found in the repository.`,
-        reference
-      });
+      const folderExists =
+        scannedFolders.has(
+          normalizedReference
+        ) ||
+        fs.existsSync(
+          path.join(
+            projectPath,
+            normalizedReference
+          )
+        );
+
+      if (
+        !fileExists &&
+        !folderExists
+      ) {
+        issues.push({
+          type: "missing-path",
+          severity: "high",
+          message:
+            `README references "${reference}", ` +
+            `but that path was not found in the repository.`,
+          reference
+        });
+      }
     }
-  });
+  );
 
   return issues;
 }
@@ -246,8 +327,11 @@ function checkReferencedPaths(
 // CHECK README SECTIONS
 // ==========================================
 
-function checkSections(readmeContent) {
-  const content = readmeContent.toLowerCase();
+function checkSections(
+  readmeContent
+) {
+  const content =
+    readmeContent.toLowerCase();
 
   const expectedSections = [
     {
@@ -270,27 +354,30 @@ function checkSections(readmeContent) {
 
   const issues = [];
 
-  expectedSections.forEach((section) => {
-    const found = section.keywords.some(
-      (keyword) =>
-        content.includes(keyword)
-    );
+  expectedSections.forEach(
+    (section) => {
+      const found =
+        section.keywords.some(
+          (keyword) =>
+            content.includes(keyword)
+        );
 
-    if (!found) {
-      issues.push({
-        type: "missing-section",
-        severity: "low",
-        message:
-          `README does not appear to contain a "${section.name}" section.`
-      });
+      if (!found) {
+        issues.push({
+          type: "missing-section",
+          severity: "low",
+          message:
+            `README does not appear to contain a "${section.name}" section.`
+        });
+      }
     }
-  });
+  );
 
   return issues;
 }
 
 // ==========================================
-// DRIFT ANALYSIS
+// MAIN DRIFT ANALYSIS
 // ==========================================
 
 function analyzeDocumentationDrift(
@@ -299,23 +386,25 @@ function analyzeDocumentationDrift(
   analysis,
   readme
 ) {
-  const readmePath = findReadme(projectPath);
+  const readmePath =
+    findReadme(
+      projectPath,
+      scan
+    );
+
+  // ========================================
+  // README NOT FOUND
+  // ========================================
 
   if (!readmePath) {
     return {
       score: 0,
-
       status: "missing-readme",
-
       summary:
         "README.md was not found in the repository.",
-
       technologyDrift: [],
-
       missingPaths: [],
-
       missingSections: [],
-
       issues: [
         {
           type: "missing-readme",
@@ -327,28 +416,27 @@ function analyzeDocumentationDrift(
     };
   }
 
+  // ========================================
+  // READ README
+  // ========================================
+
   let readmeContent = "";
 
   try {
-    readmeContent = fs.readFileSync(
-      readmePath,
-      "utf8"
-    );
+    readmeContent =
+      fs.readFileSync(
+        readmePath,
+        "utf8"
+      );
   } catch (error) {
     return {
       score: 0,
-
       status: "read-error",
-
       summary:
         "README exists but could not be read.",
-
       technologyDrift: [],
-
       missingPaths: [],
-
       missingSections: [],
-
       issues: [
         {
           type: "read-error",
@@ -359,6 +447,10 @@ function analyzeDocumentationDrift(
       ]
     };
   }
+
+  // ========================================
+  // TECHNOLOGIES
+  // ========================================
 
   const mentionedTechnologies =
     extractTechnologyClaims(
@@ -373,17 +465,25 @@ function analyzeDocumentationDrift(
       ...(analysis.tools || []),
       ...(analysis.dependencies || [])
     ])
-      .map(normalizeTechnologyName)
+      .map(
+        normalizeTechnologyName
+      )
       .filter(Boolean);
 
   const normalizedDetected =
-    unique(detectedTechnologies);
+    unique(
+      detectedTechnologies
+    );
 
   const normalizedMentioned =
-    unique(mentionedTechnologies);
+    unique(
+      mentionedTechnologies
+    );
 
-  // README technologies that aren't
-  // detected in the repository.
+  // ========================================
+  // TECHNOLOGY DRIFT
+  // ========================================
+
   const staleTechnologies =
     normalizedMentioned.filter(
       (technology) =>
@@ -392,8 +492,6 @@ function analyzeDocumentationDrift(
         )
     );
 
-  // Detected technologies that are not
-  // documented in README.
   const undocumentedTechnologies =
     normalizedDetected.filter(
       (technology) =>
@@ -410,7 +508,6 @@ function analyzeDocumentationDrift(
         type: "stale-technology",
         severity: "high",
         technology,
-
         message:
           `README mentions "${technology}", ` +
           `but it was not detected in the repository.`
@@ -424,7 +521,6 @@ function analyzeDocumentationDrift(
         type: "undocumented-technology",
         severity: "medium",
         technology,
-
         message:
           `"${technology}" was detected in the repository ` +
           `but is not mentioned in the README.`
@@ -453,7 +549,9 @@ function analyzeDocumentationDrift(
   // ========================================
 
   const sectionIssues =
-    checkSections(readmeContent);
+    checkSections(
+      readmeContent
+    );
 
   // ========================================
   // COMBINE ISSUES
@@ -471,34 +569,52 @@ function analyzeDocumentationDrift(
 
   let score = 100;
 
-  issues.forEach((issue) => {
-    if (issue.severity === "high") {
-      score -= 15;
-    }
+  issues.forEach(
+    (issue) => {
+      if (
+        issue.severity === "high"
+      ) {
+        score -= 15;
+      }
 
-    if (issue.severity === "medium") {
-      score -= 8;
-    }
+      if (
+        issue.severity === "medium"
+      ) {
+        score -= 8;
+      }
 
-    if (issue.severity === "low") {
-      score -= 3;
+      if (
+        issue.severity === "low"
+      ) {
+        score -= 3;
+      }
     }
-  });
+  );
 
   score = Math.max(
     0,
     Math.min(100, score)
   );
 
+  // ========================================
+  // STATUS
+  // ========================================
+
   let status = "healthy";
 
   if (score < 80) {
-    status = "needs-attention";
+    status =
+      "needs-attention";
   }
 
   if (score < 50) {
-    status = "significant-drift";
+    status =
+      "significant-drift";
   }
+
+  // ========================================
+  // RESULT
+  // ========================================
 
   return {
     score,
@@ -514,31 +630,37 @@ function analyzeDocumentationDrift(
 
     technologyDrift,
 
-    missingPaths: pathIssues,
+    missingPaths:
+      pathIssues,
 
-    missingSections: sectionIssues,
+    missingSections:
+      sectionIssues,
 
     issues,
 
     statistics: {
-      totalIssues: issues.length,
+      totalIssues:
+        issues.length,
 
       highSeverity:
         issues.filter(
           (issue) =>
-            issue.severity === "high"
+            issue.severity ===
+            "high"
         ).length,
 
       mediumSeverity:
         issues.filter(
           (issue) =>
-            issue.severity === "medium"
+            issue.severity ===
+            "medium"
         ).length,
 
       lowSeverity:
         issues.filter(
           (issue) =>
-            issue.severity === "low"
+            issue.severity ===
+            "low"
         ).length,
 
       documentedTechnologies:
