@@ -1,543 +1,325 @@
-const path = require("path");
-
-
-// ==========================================
-// NORMALIZE PATH
-// ==========================================
-
-function normalizePath(filePath) {
-  return filePath
-    .replace(/\\/g, "/");
-}
-
-
-// ==========================================
-// GET FILE NAME
-// ==========================================
-
-function getFileName(filePath) {
-  return path
-    .basename(filePath);
-}
-
-
-// ==========================================
-// DETECT FILE CATEGORY
-// ==========================================
-
-function detectCategory(filePath) {
-
-  const normalized =
-    normalizePath(filePath).toLowerCase();
-
-  const fileName =
-    getFileName(filePath).toLowerCase();
-
-
-  if (
-    normalized.includes("/frontend/") ||
-    normalized.includes("/components/") ||
-    fileName.endsWith(".jsx") ||
-    fileName.endsWith(".tsx")
-  ) {
-    return "Frontend";
-  }
-
-
-  if (
-    normalized.includes("/routes/") ||
-    fileName.includes("route")
-  ) {
-    return "API / Routes";
-  }
-
-
-  if (
-    normalized.includes("/ai/") ||
-    fileName.includes("ai")
-  ) {
-    return "AI";
-  }
-
-
-  if (
-    normalized.includes("/analyzer/") ||
-    fileName.includes("analyzer")
-  ) {
-    return "Analysis";
-  }
-
-
-  if (
-    normalized.includes("/backend/") ||
-    fileName === "server.js" ||
-    fileName === "server.ts"
-  ) {
-    return "Backend";
-  }
-
-
-  if (
-    normalized.includes("/test") ||
-    fileName.includes(".test.") ||
-    fileName.includes(".spec.")
-  ) {
-    return "Tests";
-  }
-
-
-  return "Other";
-}
-
-
-// ==========================================
-// GROUP SOURCE FILES
-// ==========================================
-
-function groupSourceFiles(sourceFiles) {
-
-  const groups = {};
-
-  sourceFiles.forEach((file) => {
-
-    if (!file?.path) {
-      return;
-    }
-
-
-    const category =
-      detectCategory(file.path);
-
-
-    if (!groups[category]) {
-      groups[category] = [];
-    }
-
-
-    groups[category].push(
-      file.path
-    );
-
-  });
-
-
-  return groups;
-}
-
-
-// ==========================================
-// BUILD PROJECT STRUCTURE
-// ==========================================
-
-function buildStructure(
-  scan
-) {
-
-  if (!scan) {
-    return [];
-  }
-
-
-  const folders =
-    scan.folders || [];
-
-  const files =
-    scan.files || [];
-
-
-  return [
-    ...folders.map(
-      (folder) =>
-        `- 📁 ${normalizePath(folder)}`
-    ),
-
-    ...files.map(
-      (file) =>
-        `- 📄 ${normalizePath(file)}`
-    )
-  ];
-
-}
-
-
-// ==========================================
-// BUILD DOCUMENTATION
-// ==========================================
-
-function generateDocumentation(
-  context
-) {
-
-  const analysis =
-    context.analysis || {};
-
-  const scan =
-    context.scan || {};
-
-  const health =
-    context.health || {};
-
-  const readme =
-    context.documentation || {};
-
-  const sourceFiles =
-    context.sourceCode?.files || [];
-
-
+function generateDocumentation(context) {
   const projectName =
-    analysis.projectName ||
-    context.project?.name ||
-    "Unknown Project";
+    context?.project?.name ||
+    context?.analysis?.projectName ||
+    "Repository";
 
+  const structure = context?.structure || {};
+  const technology = context?.technology || {};
+  const dependencies = context?.dependencies || {};
+  const health = context?.health || {};
+  const documentation = context?.documentation || {};
 
-  const languages =
-    analysis.languages || [];
+  const files = structure.files || [];
+  const folders = structure.folders || [];
 
+  const languages = technology.languages || [];
+  const frameworks = technology.frameworks || [];
+  const tools = technology.tools || [];
 
-  const frameworks =
-    analysis.frameworks || [];
+  const productionDependencies =
+    dependencies.production || [];
 
+  const developmentDependencies =
+    dependencies.development || [];
 
-  const tools =
-    analysis.tools || [];
+  const markdown = [];
 
+  markdown.push(`# ${projectName}`);
+  markdown.push("");
 
-  const dependencies =
-    analysis.dependencies || [];
+  markdown.push("## 📌 Project Overview");
+  markdown.push("");
+  markdown.push(
+    `RepoLens-generated documentation for **${projectName}**.`
+  );
+  markdown.push("");
 
+  markdown.push(
+    `This repository contains **${files.length} files** across **${folders.length} folders**.`
+  );
+  markdown.push("");
 
-  const devDependencies =
-    analysis.devDependencies || [];
-
-
-  const groups =
-    groupSourceFiles(
-      sourceFiles
-    );
-
-
-  // ========================================
-  // PROJECT OVERVIEW
-  // ========================================
-
-  let documentation = "";
-
-
-  documentation +=
-    `# ${projectName}\n\n`;
-
-
-  documentation +=
-    `## 📌 Project Overview\n\n`;
-
-
-  documentation +=
-    `RepoLens-generated documentation for **${projectName}**.\n\n`;
-
-
-  documentation +=
-    `This repository contains **${scan.files?.length || 0} files** across **${scan.folders?.length || 0} folders**.\n\n`;
-
-
-  // ========================================
-  // TECHNOLOGY STACK
-  // ========================================
-
-  documentation +=
-    `## 🛠️ Technology Stack\n\n`;
-
+  markdown.push("## 🛠️ Technology Stack");
+  markdown.push("");
 
   if (languages.length > 0) {
-
-    documentation +=
-      `### Languages\n\n`;
-
-    languages.forEach(
-      (language) => {
-
-        documentation +=
-          `- ${language}\n`;
-
-      }
+    markdown.push(
+      `- **Languages:** ${languages.join(", ")}`
     );
-
-    documentation += "\n";
   }
-
 
   if (frameworks.length > 0) {
-
-    documentation +=
-      `### Frameworks\n\n`;
-
-    frameworks.forEach(
-      (framework) => {
-
-        documentation +=
-          `- ${framework}\n`;
-
-      }
+    markdown.push(
+      `- **Frameworks:** ${frameworks.join(", ")}`
     );
-
-    documentation += "\n";
   }
-
 
   if (tools.length > 0) {
-
-    documentation +=
-      `### Tools\n\n`;
-
-    tools.forEach(
-      (tool) => {
-
-        documentation +=
-          `- ${tool}\n`;
-
-      }
+    markdown.push(
+      `- **Tools:** ${tools.join(", ")}`
     );
-
-    documentation += "\n";
   }
-
-
-  // ========================================
-  // ARCHITECTURE
-  // ========================================
-
-  documentation +=
-    `## 🏗️ Architecture\n\n`;
-
-
-  documentation +=
-    `The repository is organized into the following major areas:\n\n`;
-
-
-  Object.entries(groups)
-    .forEach(
-      ([category, files]) => {
-
-        documentation +=
-          `### ${category}\n\n`;
-
-        files
-          .slice(0, 15)
-          .forEach(
-            (file) => {
-
-              documentation +=
-                `- \`${normalizePath(file)}\`\n`;
-
-            }
-          );
-
-        documentation += "\n";
-
-      }
-    );
-
-
-  // ========================================
-  // PROJECT STRUCTURE
-  // ========================================
-
-  documentation +=
-    `## 📁 Project Structure\n\n`;
-
-
-  const structure =
-    buildStructure(
-      scan
-    );
-
-
-  documentation +=
-    structure
-      .slice(0, 100)
-      .join("\n");
-
-
-  documentation +=
-    "\n\n";
-
-
-  // ========================================
-  // DEPENDENCIES
-  // ========================================
-
-  documentation +=
-    `## 📦 Dependencies\n\n`;
-
-
-  if (dependencies.length > 0) {
-
-    documentation +=
-      `### Production Dependencies\n\n`;
-
-    dependencies.forEach(
-      (dependency) => {
-
-        documentation +=
-          `- \`${dependency}\`\n`;
-
-      }
-    );
-
-    documentation += "\n";
-
-  }
-
-
-  if (devDependencies.length > 0) {
-
-    documentation +=
-      `### Development Dependencies\n\n`;
-
-    devDependencies.forEach(
-      (dependency) => {
-
-        documentation +=
-          `- \`${dependency}\`\n`;
-
-      }
-    );
-
-    documentation += "\n";
-
-  }
-
-
-  // ========================================
-  // HEALTH
-  // ========================================
-
-  documentation +=
-    `## 🩺 Repository Health\n\n`;
-
-
-  documentation +=
-    `Health Score: **${health.score ?? "Unknown"}/100**\n\n`;
-
-
-  documentation +=
-    `- Passed checks: ${health.passedChecks ?? 0}\n`;
-
-
-  documentation +=
-    `- Checks needing attention: ${health.failedChecks ?? 0}\n\n`;
-
-
-  // ========================================
-  // README CONSISTENCY
-  // ========================================
-
-  documentation +=
-    `## 📖 README Consistency\n\n`;
-
-
-  documentation +=
-    `Documentation consistency score: **${readme.score ?? "Unknown"}/100**\n\n`;
-
 
   if (
-    readme.mismatches &&
-    readme.mismatches.length > 0
+    languages.length === 0 &&
+    frameworks.length === 0 &&
+    tools.length === 0
   ) {
+    markdown.push("- No technology information detected.");
+  }
 
-    documentation +=
-      `### Potential inconsistencies\n\n`;
+  markdown.push("");
 
+  markdown.push("## 🏗️ Architecture");
+  markdown.push("");
+  markdown.push(
+    "The repository is organized into the following major areas:"
+  );
+  markdown.push("");
 
-    readme.mismatches
-      .forEach(
-        (item) => {
+  const categories = {
+    "Frontend": [],
+    "API / Routes": [],
+    "AI": [],
+    "Analysis": [],
+    "Backend": [],
+    "Tests": [],
+    "Other": []
+  };
 
-          documentation +=
-            `- ⚠️ ${item.message}\n`;
+  for (const file of files) {
+    const filePath =
+      typeof file === "string"
+        ? file
+        : file?.path || "";
 
-        }
+    if (!filePath) continue;
+
+    const normalized = filePath
+      .replace(/\\/g, "/")
+      .toLowerCase();
+
+    if (
+      normalized.includes("/test/") ||
+      normalized.includes("/tests/") ||
+      normalized.includes(".test.") ||
+      normalized.includes(".spec.")
+    ) {
+      categories["Tests"].push(filePath);
+    } else if (
+      normalized.includes("/ai/") ||
+      normalized.includes("codebaseai") ||
+      normalized.includes("architectureai")
+    ) {
+      categories["AI"].push(filePath);
+    } else if (
+      normalized.includes("/routes/")
+    ) {
+      categories["API / Routes"].push(filePath);
+    } else if (
+      normalized.includes("/analyzer/")
+    ) {
+      categories["Analysis"].push(filePath);
+    } else if (
+      normalized.startsWith("backend/") ||
+      normalized.includes("/backend/")
+    ) {
+      categories["Backend"].push(filePath);
+    } else if (
+      normalized.startsWith("replens/") ||
+      normalized.includes("/src/") ||
+      normalized.endsWith(".jsx") ||
+      normalized.endsWith(".tsx")
+    ) {
+      categories["Frontend"].push(filePath);
+    } else {
+      categories["Other"].push(filePath);
+    }
+  }
+
+  for (const [category, categoryFiles] of Object.entries(
+    categories
+  )) {
+    if (categoryFiles.length === 0) continue;
+
+    markdown.push(`### ${category}`);
+    markdown.push("");
+
+    categoryFiles
+      .slice(0, 20)
+      .forEach(filePath => {
+        markdown.push(`- \`${filePath}\``);
+      });
+
+    if (categoryFiles.length > 20) {
+      markdown.push(
+        `- ... and ${categoryFiles.length - 20} more`
       );
+    }
 
-    documentation += "\n";
+    markdown.push("");
+  }
 
+  markdown.push("## 📁 Project Structure");
+  markdown.push("");
+
+  if (folders.length > 0) {
+    folders.slice(0, 100).forEach(folder => {
+      const folderPath =
+        typeof folder === "string"
+          ? folder
+          : folder?.path || "";
+
+      if (folderPath) {
+        markdown.push(`- 📁 \`${folderPath}\``);
+      }
+    });
+  }
+
+  if (files.length > 0) {
+    files.slice(0, 100).forEach(file => {
+      const filePath =
+        typeof file === "string"
+          ? file
+          : file?.path || "";
+
+      if (filePath) {
+        markdown.push(`- 📄 \`${filePath}\``);
+      }
+    });
+  }
+
+  if (
+    folders.length === 0 &&
+    files.length === 0
+  ) {
+    markdown.push(
+      "No project structure information detected."
+    );
+  }
+
+  markdown.push("");
+
+  markdown.push("## 📦 Dependencies");
+  markdown.push("");
+
+  markdown.push("### Production Dependencies");
+  markdown.push("");
+
+  if (productionDependencies.length > 0) {
+    productionDependencies.forEach(dep => {
+      markdown.push(`- \`${dep}\``);
+    });
   } else {
-
-    documentation +=
-      `No README technology mismatches were detected.\n\n`;
-
+    markdown.push(
+      "No production dependencies detected."
+    );
   }
 
+  markdown.push("");
 
-  // ========================================
-  // DEVELOPER STARTING POINT
-  // ========================================
+  markdown.push("### Development Dependencies");
+  markdown.push("");
 
-  documentation +=
-    `## 🧭 Developer Starting Point\n\n`;
+  if (developmentDependencies.length > 0) {
+    developmentDependencies.forEach(dep => {
+      markdown.push(`- \`${dep}\``);
+    });
+  } else {
+    markdown.push(
+      "No development dependencies detected."
+    );
+  }
 
+  markdown.push("");
 
-  documentation +=
-    `When exploring this repository, start with the main application entry points and then follow the API and analysis modules.\n\n`;
+  markdown.push("## 🩺 Repository Health");
+  markdown.push("");
+  markdown.push(
+    `Health Score: **${health.score ?? "N/A"}/100**`
+  );
+  markdown.push("");
 
+  if (health.passedChecks !== undefined) {
+    markdown.push(
+      `- Passed checks: ${health.passedChecks}`
+    );
+  }
+
+  if (health.failedChecks !== undefined) {
+    markdown.push(
+      `- Checks needing attention: ${health.failedChecks}`
+    );
+  }
+
+  markdown.push("");
+
+  markdown.push("## 📖 README Consistency");
+  markdown.push("");
+
+  markdown.push(
+    `Documentation consistency score: **${documentation.score ?? "N/A"}/100**`
+  );
+  markdown.push("");
 
   if (
-    sourceFiles.some(
-      (file) =>
-        getFileName(file.path)
-          .toLowerCase() ===
-        "app.jsx"
-    )
+    documentation.mismatches &&
+    documentation.mismatches.length > 0
   ) {
+    markdown.push(
+      "The following README technology mismatches were detected:"
+    );
+    markdown.push("");
 
-    documentation +=
-      `1. \`App.jsx\` — Main frontend application.\n`;
-
+    documentation.mismatches.forEach(item => {
+      markdown.push(`- ${item}`);
+    });
+  } else {
+    markdown.push(
+      "No README technology mismatches were detected."
+    );
   }
 
+  markdown.push("");
 
-  if (
-    sourceFiles.some(
-      (file) =>
-        getFileName(file.path)
-          .toLowerCase() ===
-        "server.js"
-    )
-  ) {
+  markdown.push("## 🧭 Developer Starting Point");
+  markdown.push("");
 
-    documentation +=
-      `2. \`server.js\` — Backend entry point.\n`;
+  markdown.push(
+    "When exploring this repository, start with the main application entry points and then follow the API and analysis modules."
+  );
+  markdown.push("");
 
-  }
+  markdown.push(
+    "1. `App.jsx` — Main frontend application."
+  );
+  markdown.push(
+    "2. `server.js` — Backend entry point."
+  );
+  markdown.push(
+    "3. Explore the API routes."
+  );
+  markdown.push(
+    "4. Explore the repository analyzers."
+  );
+  markdown.push(
+    "5. Explore the AI modules."
+  );
 
-
-  documentation +=
-    `3. Explore the API routes.\n`;
-
-
-  documentation +=
-    `4. Explore the repository analyzers.\n`;
-
-
-  documentation +=
-    `5. Explore the AI modules.\n\n`;
-
-
-  documentation +=
-    `---\n\n`;
-
-
-  documentation +=
-    `Generated automatically by **RepoLens**.\n`;
-
+  markdown.push("");
+  markdown.push("---");
+  markdown.push("");
+  markdown.push(
+    "Generated automatically by **RepoLens**."
+  );
 
   return {
     projectName,
-    markdown: documentation,
+    markdown: markdown.join("\n"),
     source: "deterministic"
   };
-
 }
-
 
 module.exports = {
   generateDocumentation
