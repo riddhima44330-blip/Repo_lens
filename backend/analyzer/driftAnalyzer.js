@@ -1,10 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 
-// ==========================================
-// HELPERS
-// ==========================================
-
 function normalizePath(value) {
   return String(value || "")
     .replace(/\\/g, "/")
@@ -17,30 +13,24 @@ function unique(values) {
   return [...new Set(values)];
 }
 
-// ==========================================
-// FIND README
-// ==========================================
+/* -------------------------------------------------------
+   README DETECTION
+------------------------------------------------------- */
 
 function findReadme(projectPath, scan) {
-  const scanFiles =
-    scan?.files || [];
+  const scanFiles = scan?.files || [];
 
-  // First use scanner information
-  const scannerReadme =
-    scanFiles.find((file) => {
-      const filePath =
-        typeof file === "string"
-          ? file
-          : file?.path || "";
+  const scannerReadme = scanFiles.find((file) => {
+    const filePath =
+      typeof file === "string"
+        ? file
+        : file?.path || "";
 
-      return (
-        normalizePath(filePath) ===
-          "readme.md" ||
-        normalizePath(filePath).endsWith(
-          "/readme.md"
-        )
-      );
-    });
+    return (
+      normalizePath(filePath) === "readme.md" ||
+      normalizePath(filePath).endsWith("/readme.md")
+    );
+  });
 
   if (scannerReadme) {
     return typeof scannerReadme === "string"
@@ -48,7 +38,6 @@ function findReadme(projectPath, scan) {
       : scannerReadme.path;
   }
 
-  // Then check filesystem
   if (projectPath) {
     const possibleNames = [
       "README.md",
@@ -57,11 +46,7 @@ function findReadme(projectPath, scan) {
     ];
 
     for (const name of possibleNames) {
-      const fullPath =
-        path.join(
-          projectPath,
-          name
-        );
+      const fullPath = path.join(projectPath, name);
 
       if (fs.existsSync(fullPath)) {
         return name;
@@ -72,48 +57,36 @@ function findReadme(projectPath, scan) {
   return null;
 }
 
-// ==========================================
-// READ README
-// ==========================================
+/* -------------------------------------------------------
+   README READING
+------------------------------------------------------- */
 
-function readReadme(
-  projectPath,
-  readmePath
-) {
-  if (
-    !projectPath ||
-    !readmePath
-  ) {
+function readReadme(projectPath, readmePath) {
+  if (!projectPath || !readmePath) {
     return "";
   }
 
   try {
-    const fullPath =
-      path.join(
-        projectPath,
-        readmePath
-      );
+    const fullPath = path.join(
+      projectPath,
+      readmePath
+    );
 
     if (!fs.existsSync(fullPath)) {
       return "";
     }
 
-    return fs.readFileSync(
-      fullPath,
-      "utf8"
-    );
+    return fs.readFileSync(fullPath, "utf8");
   } catch (error) {
     return "";
   }
 }
 
-// ==========================================
-// NORMALIZE TECHNOLOGY NAMES
-// ==========================================
+/* -------------------------------------------------------
+   TECHNOLOGY NORMALIZATION
+------------------------------------------------------- */
 
-function normalizeTechnology(
-  value
-) {
+function normalizeTechnology(value) {
   return String(value || "")
     .trim()
     .toLowerCase()
@@ -121,25 +94,31 @@ function normalizeTechnology(
     .replace(/\s+/g, " ");
 }
 
-// ==========================================
-// EXTRACT TECHNOLOGY CLAIMS
-// ==========================================
+/* -------------------------------------------------------
+   README TECHNOLOGY CLAIMS
+------------------------------------------------------- */
 
-function extractTechnologyClaims(
-  readme
-) {
+function extractTechnologyClaims(readme) {
   const claims = [];
 
   if (!readme) {
     return claims;
   }
 
+  /*
+   * IMPORTANT:
+   * Do not include single-letter "c".
+   *
+   * README text commonly contains the letter "c"
+   * inside normal English words, which creates false
+   * technology detections.
+   */
+
   const knownTechnologies = [
     "javascript",
     "typescript",
     "python",
     "java",
-    "c",
     "c++",
     "c#",
     "go",
@@ -151,6 +130,7 @@ function extractTechnologyClaims(
     "express",
     "node.js",
     "node",
+
     "vite",
     "webpack",
     "tailwind",
@@ -165,13 +145,13 @@ function extractTechnologyClaims(
     "openai",
     "prisma",
     "leaflet",
+
     "docker",
     "vercel",
     "netlify"
   ];
 
-  const lower =
-    readme.toLowerCase();
+  const lower = readme.toLowerCase();
 
   for (const technology of knownTechnologies) {
     if (
@@ -180,9 +160,7 @@ function extractTechnologyClaims(
       )
     ) {
       claims.push(
-        normalizeTechnology(
-          technology
-        )
+        normalizeTechnology(technology)
       );
     }
   }
@@ -190,30 +168,28 @@ function extractTechnologyClaims(
   return unique(claims);
 }
 
-// ==========================================
-// EXTRACT REFERENCED FILE PATHS
-// ==========================================
+/* -------------------------------------------------------
+   README PATH REFERENCES
+------------------------------------------------------- */
 
-function extractReferencedPaths(
-  readme
-) {
+function extractReferencedPaths(readme) {
   if (!readme) {
     return [];
   }
 
   const references = [];
 
-  // Markdown links
+  /*
+   * Markdown links
+   */
+
   const markdownLinks =
     /\[[^\]]*\]\(([^)]+)\)/g;
 
   let match;
 
   while (
-    (match =
-      markdownLinks.exec(
-        readme
-      )) !== null
+    (match = markdownLinks.exec(readme)) !== null
   ) {
     const value =
       match[1]
@@ -225,15 +201,15 @@ function extractReferencedPaths(
     }
   }
 
-  // Backtick paths
+  /*
+   * Backtick references
+   */
+
   const backtickPaths =
     /`([^`]+)`/g;
 
   while (
-    (match =
-      backtickPaths.exec(
-        readme
-      )) !== null
+    (match = backtickPaths.exec(readme)) !== null
   ) {
     const value =
       match[1].trim();
@@ -262,15 +238,12 @@ function extractReferencedPaths(
   );
 }
 
-// ==========================================
-// BUILD REPOSITORY FILE SET
-// ==========================================
+/* -------------------------------------------------------
+   REPOSITORY FILE LIST
+------------------------------------------------------- */
 
-function buildRepositoryFiles(
-  scan
-) {
-  const files =
-    scan?.files || [];
+function buildRepositoryFiles(scan) {
+  const files = scan?.files || [];
 
   return files
     .map((file) =>
@@ -282,18 +255,16 @@ function buildRepositoryFiles(
     .map(normalizePath);
 }
 
-// ==========================================
-// CHECK WHETHER REFERENCED PATH EXISTS
-// ==========================================
+/* -------------------------------------------------------
+   PATH EXISTENCE CHECK
+------------------------------------------------------- */
 
 function referencedPathExists(
   reference,
   repositoryFiles
 ) {
-  const normalizedReference =
-    normalizePath(
-      reference
-    )
+  let normalizedReference =
+    normalizePath(reference)
       .replace(/^\.\//, "")
       .replace(/^\//, "");
 
@@ -301,7 +272,10 @@ function referencedPathExists(
     return true;
   }
 
-  // Ignore external URLs
+  /*
+   * External links are not repository paths.
+   */
+
   if (
     normalizedReference.startsWith(
       "http://"
@@ -316,14 +290,20 @@ function referencedPathExists(
     return true;
   }
 
-  // Ignore anchors
+  /*
+   * README anchors are valid.
+   */
+
   if (
     normalizedReference.startsWith("#")
   ) {
     return true;
   }
 
-  // Exact path match
+  /*
+   * Exact repository path.
+   */
+
   if (
     repositoryFiles.includes(
       normalizedReference
@@ -332,7 +312,10 @@ function referencedPathExists(
     return true;
   }
 
-  // Direct path ending match
+  /*
+   * Path may be written without ./.
+   */
+
   if (
     repositoryFiles.some(
       (file) =>
@@ -344,37 +327,34 @@ function referencedPathExists(
     return true;
   }
 
-  // ========================================
-  // SPECIAL HANDLING FOR GENERIC FILE NAMES
-  // ========================================
-
   /*
-   * README may say:
+   * IMPORTANT:
+   *
+   * Generic filenames such as:
    *
    * package.json
+   * package-lock.json
+   * README.md
    *
-   * while the repository is a monorepo:
+   * may exist in multiple folders.
    *
-   * backend/package.json
-   * replens/package.json
-   *
-   * In that situation the reference is valid.
+   * Therefore a basename match is considered valid.
    */
 
   const basename =
-    path.basename(
-      normalizedReference
-    );
+    path
+      .basename(normalizedReference)
+      .toLowerCase();
 
   if (
-    basename ===
-    normalizedReference
+    basename === normalizedReference
   ) {
     const matchingFiles =
       repositoryFiles.filter(
         (file) =>
-          path.basename(file) ===
-          basename
+          path
+            .basename(file)
+            .toLowerCase() === basename
       );
 
     if (
@@ -384,12 +364,31 @@ function referencedPathExists(
     }
   }
 
+  /*
+   * Also support references such as:
+   *
+   * backend/package.json
+   * replens/package.json
+   */
+
+  const matchingSuffix =
+    repositoryFiles.some(
+      (file) =>
+        file.endsWith(
+          `/${normalizedReference}`
+        )
+    );
+
+  if (matchingSuffix) {
+    return true;
+  }
+
   return false;
 }
 
-// ==========================================
-// DETECT TECHNOLOGY MISMATCHES
-// ==========================================
+/* -------------------------------------------------------
+   TECHNOLOGY MISMATCH DETECTION
+------------------------------------------------------- */
 
 function detectTechnologyMismatches(
   readmeClaims,
@@ -399,9 +398,7 @@ function detectTechnologyMismatches(
     ...(analysis?.languages || []),
     ...(analysis?.frameworks || []),
     ...(analysis?.tools || [])
-  ].map(
-    normalizeTechnology
-  );
+  ].map(normalizeTechnology);
 
   const normalizedDetected =
     unique(detected);
@@ -447,9 +444,8 @@ function detectTechnologyMismatches(
     };
 
     const possibleNames =
-      aliases[normalized] || [
-        normalized
-      ];
+      aliases[normalized] ||
+      [normalized];
 
     const exists =
       possibleNames.some(
@@ -469,9 +465,9 @@ function detectTechnologyMismatches(
   return mismatches;
 }
 
-// ==========================================
-// ANALYZE DOCUMENTATION DRIFT
-// ==========================================
+/* -------------------------------------------------------
+   MAIN ANALYZER
+------------------------------------------------------- */
 
 function analyzeDocumentationDrift(
   projectPath,
@@ -481,9 +477,9 @@ function analyzeDocumentationDrift(
 ) {
   const issues = [];
 
-  // ========================================
-  // README
-  // ========================================
+  /*
+   * Find README
+   */
 
   const readmePath =
     findReadme(
@@ -501,13 +497,15 @@ function analyzeDocumentationDrift(
       summary:
         "README.md was not found in the repository.",
 
-      readmePath:
-        null,
+      readmePath: null,
 
       issues: [
         {
           severity: "high",
-          type: "missing-readme",
+
+          type:
+            "missing-readme",
+
           message:
             "README.md was not found in the repository."
         }
@@ -522,9 +520,9 @@ function analyzeDocumentationDrift(
     };
   }
 
-  // ========================================
-  // README CONTENT
-  // ========================================
+  /*
+   * Read README
+   */
 
   const readme =
     readReadme(
@@ -547,7 +545,10 @@ function analyzeDocumentationDrift(
       issues: [
         {
           severity: "high",
-          type: "unreadable-readme",
+
+          type:
+            "unreadable-readme",
+
           message:
             "README.md exists but could not be read."
         }
@@ -562,9 +563,9 @@ function analyzeDocumentationDrift(
     };
   }
 
-  // ========================================
-  // TECHNOLOGY CONSISTENCY
-  // ========================================
+  /*
+   * Technology consistency
+   */
 
   const technologyClaims =
     extractTechnologyClaims(
@@ -581,15 +582,18 @@ function analyzeDocumentationDrift(
     (message) => {
       issues.push({
         severity: "medium",
-        type: "technology-mismatch",
+
+        type:
+          "technology-mismatch",
+
         message
       });
     }
   );
 
-  // ========================================
-  // REFERENCED PATHS
-  // ========================================
+  /*
+   * Referenced repository paths
+   */
 
   const referencedPaths =
     extractReferencedPaths(
@@ -601,8 +605,13 @@ function analyzeDocumentationDrift(
       scan
     );
 
-  for (const reference of referencedPaths) {
-    // Ignore obvious non-file references
+  for (
+    const reference of referencedPaths
+  ) {
+    /*
+     * Ignore external URLs.
+     */
+
     if (
       reference.startsWith(
         "http://"
@@ -616,9 +625,9 @@ function analyzeDocumentationDrift(
     }
 
     /*
-     * Ignore generic documentation
-     * words that happen to contain dots.
+     * Ignore common example values.
      */
+
     if (
       reference ===
         "example.com" ||
@@ -639,26 +648,33 @@ function analyzeDocumentationDrift(
     if (!exists) {
       issues.push({
         severity: "high",
-        type: "missing-path",
+
+        type:
+          "missing-path",
+
         message:
           `README references "${reference}", but that path was not found in the repository.`
       });
     }
   }
 
-  // ========================================
-  // DOCUMENTATION SCORE
-  // ========================================
+  /*
+   * Calculate score
+   */
 
   let score = 100;
 
-  for (const issue of issues) {
+  for (
+    const issue of issues
+  ) {
     if (
-      issue.severity === "high"
+      issue.severity ===
+      "high"
     ) {
       score -= 15;
     } else if (
-      issue.severity === "medium"
+      issue.severity ===
+      "medium"
     ) {
       score -= 8;
     } else {
@@ -675,9 +691,9 @@ function analyzeDocumentationDrift(
       )
     );
 
-  // ========================================
-  // STATUS
-  // ========================================
+  /*
+   * Status
+   */
 
   let status =
     "healthy";
@@ -692,13 +708,15 @@ function analyzeDocumentationDrift(
       "significant-drift";
   }
 
-  // ========================================
-  // SUMMARY
-  // ========================================
+  /*
+   * Summary
+   */
 
   let summary;
 
-  if (issues.length === 0) {
+  if (
+    issues.length === 0
+  ) {
     summary =
       "Documentation looks healthy.";
   } else if (
@@ -711,27 +729,34 @@ function analyzeDocumentationDrift(
       `${issues.length} documentation consistency issue(s) detected.`;
   }
 
-  // ========================================
-  // STATISTICS
-  // ========================================
+  /*
+   * Statistics
+   */
 
   const high =
     issues.filter(
       (issue) =>
-        issue.severity === "high"
+        issue.severity ===
+        "high"
     ).length;
 
   const medium =
     issues.filter(
       (issue) =>
-        issue.severity === "medium"
+        issue.severity ===
+        "medium"
     ).length;
 
   const low =
     issues.filter(
       (issue) =>
-        issue.severity === "low"
+        issue.severity ===
+        "low"
     ).length;
+
+  /*
+   * Final result
+   */
 
   return {
     score,
