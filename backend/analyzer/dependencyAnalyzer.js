@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 // ==========================================
-// BUILT-IN MODULES
+// BUILT-IN NODE MODULES
 // ==========================================
 
 const BUILTIN_MODULES = new Set([
@@ -49,7 +49,7 @@ const BUILTIN_MODULES = new Set([
 ]);
 
 // ==========================================
-// HELPERS
+// PATH NORMALIZATION
 // ==========================================
 
 function normalizePath(value) {
@@ -59,6 +59,10 @@ function normalizePath(value) {
     .toLowerCase();
 }
 
+// ==========================================
+// GET PACKAGE NAME
+// ==========================================
+
 function getPackageName(importPath) {
   if (!importPath) {
     return null;
@@ -66,7 +70,7 @@ function getPackageName(importPath) {
 
   const value = importPath.trim();
 
-  // Local imports
+  // Ignore local imports
   if (
     value.startsWith(".") ||
     value.startsWith("/") ||
@@ -79,16 +83,18 @@ function getPackageName(importPath) {
 
   // Scoped package
   if (value.startsWith("@")) {
-    return parts.length >= 2
-      ? `${parts[0]}/${parts[1]}`
-      : value;
+    if (parts.length >= 2) {
+      return `${parts[0]}/${parts[1]}`;
+    }
+
+    return value;
   }
 
   return parts[0];
 }
 
 // ==========================================
-// IMPORT EXTRACTION
+// EXTRACT IMPORTS
 // ==========================================
 
 function extractImports(content) {
@@ -99,16 +105,20 @@ function extractImports(content) {
   }
 
   const patterns = [
+    // require("package")
     /require\s*\(\s*["'`]([^"'`]+)["'`]\s*\)/g,
 
+    // import x from "package"
     /from\s+["'`]([^"'`]+)["'`]/g,
 
+    // import("package")
     /import\s*\(\s*["'`]([^"'`]+)["'`]\s*\)/g,
 
+    // import "package"
     /import\s+["'`]([^"'`]+)["'`]/g
   ];
 
-  patterns.forEach((pattern) => {
+  for (const pattern of patterns) {
     let match;
 
     while (
@@ -124,7 +134,7 @@ function extractImports(content) {
         imports.add(packageName);
       }
     }
-  });
+  }
 
   return [...imports];
 }
@@ -163,7 +173,7 @@ function isConfigFile(filePath) {
 }
 
 // ==========================================
-// READ PACKAGE.JSON FILES
+// FIND PACKAGE.JSON FILES
 // ==========================================
 
 function findPackageFiles(context) {
@@ -174,7 +184,7 @@ function findPackageFiles(context) {
 
   const packageFiles = [];
 
-  files.forEach((file) => {
+  for (const file of files) {
     const filePath =
       typeof file === "string"
         ? file
@@ -187,16 +197,24 @@ function findPackageFiles(context) {
     ) {
       packageFiles.push(filePath);
     }
-  });
+  }
 
   return packageFiles;
 }
+
+// ==========================================
+// READ PACKAGE.JSON
+// ==========================================
 
 function readPackageJson(
   projectPath,
   packageFile
 ) {
   try {
+    if (!projectPath) {
+      return null;
+    }
+
     const fullPath =
       path.join(
         projectPath,
@@ -216,96 +234,81 @@ function readPackageJson(
     return JSON.parse(content);
 
   } catch (error) {
+    console.error(
+      "Could not read package.json:",
+      packageFile,
+      error.message
+    );
+
     return null;
   }
 }
 
 // ==========================================
-// PACKAGE REGISTRY
+// BUILD PACKAGE REGISTRY
 // ==========================================
 
-function buildPackageRegistry(
-  context
-) {
+function buildPackageRegistry(context) {
   const projectPath =
     context?.projectPath;
 
   const packageFiles =
     findPackageFiles(context);
 
-  const production = new Map();
-  const development = new Map();
+  const production =
+    new Map();
 
-  packageFiles.forEach(
-    (packageFile) => {
-      const packageJson =
-        readPackageJson(
-          projectPath,
-          packageFile
-        );
+  const development =
+    new Map();
 
-      if (!packageJson) {
-        return;
-      }
-
-      const packageDirectory =
-        path.dirname(
-          packageFile
-        );
-
-      const dependencies =
-        packageJson.dependencies ||
-        {};
-
-      const devDependencies =
-        packageJson.devDependencies ||
-        {};
-
-      Object.entries(
-        dependencies
-      ).forEach(
-        ([name, version]) => {
-          production.set(
-            name,
-            {
-              name,
-              version,
-              packageFile:
-                normalizePath(
-                  packageFile
-                ),
-              packageDirectory:
-                normalizePath(
-                  packageDirectory
-                )
-            }
-          );
-        }
+  for (const packageFile of packageFiles) {
+    const packageJson =
+      readPackageJson(
+        projectPath,
+        packageFile
       );
 
-      Object.entries(
-        devDependencies
-      ).forEach(
-        ([name, version]) => {
-          development.set(
-            name,
-            {
-              name,
-              version,
-              packageFile:
-                normalizePath(
-                  packageFile
-                ),
-              packageDirectory:
-                normalizePath(
-                  packageDirectory
-                )
-            }
-          );
-        }
-      );
+    if (!packageJson) {
+      continue;
     }
-  );
+
+    const packageDirectory =
+      path.dirname(packageFile);
+
+    const dependencies =
+      packageJson.dependencies ||
+      {};
+
+    const devDependencies =
+      packageJson.devDependencies ||
+      {};
+
+    for (const [name, version] of Object.entries(
+      dependencies
+    )) {
+      production.set(name, {
+        name,
+        version,
+        packageFile:
+          normalizePath(packageFile),
+        packageDirectory:
+          normalizePath(packageDirectory)
+      });
+    }
+
+    for (const [name, version] of Object.entries(
+      devDependencies
+    )) {
+      development.set(name, {
+        name,
+        version,
+        packageFile:
+          normalizePath(packageFile),
+        packageDirectory:
+          normalizePath(packageDirectory)
+      });
+    }
+  }
 
   return {
     production,
@@ -315,103 +318,30 @@ function buildPackageRegistry(
 }
 
 // ==========================================
-// SOURCE USAGE
-// ==========================================
-
-function buildUsageMap(
-  context
-) {
-  const usageMap = new Map();
-
-  const sourceFiles =
-    context?.sourceCode?.files ||
-    [];
-
-  sourceFiles.forEach(
-    (file) => {
-      const filePath =
-        file?.path || "";
-
-      const content =
-        file?.content || "";
-
-      const imports =
-        extractImports(
-          content
-        );
-
-      imports.forEach(
-        (packageName) => {
-
-          if (
-            !usageMap.has(
-              packageName
-            )
-          ) {
-            usageMap.set(
-              packageName,
-              []
-            );
-          }
-
-          usageMap
-            .get(packageName)
-            .push({
-              path: filePath,
-              isTest:
-                isTestFile(
-                  filePath
-                ),
-              isConfig:
-                isConfigFile(
-                  filePath
-                )
-            });
-        }
-      );
-    }
-  );
-
-  return usageMap;
-}
-
-// ==========================================
-// DETERMINE RELEVANT PACKAGE
+// CHECK WHETHER DEPENDENCY BELONGS TO FILE
 // ==========================================
 
 function packageMatchesFile(
   dependency,
   usagePath
 ) {
-  if (!dependency?.packageDirectory) {
-    return true;
-  }
-
   const directory =
-    dependency.packageDirectory;
+    normalizePath(
+      dependency?.packageDirectory
+    );
 
   const normalizedPath =
     normalizePath(
       usagePath
     );
 
-  /*
-   * Root package.json can be used
-   * throughout the repository.
-   */
-
+  // Root package.json
   if (
-    directory === "." ||
-    directory === ""
+    !directory ||
+    directory === "."
   ) {
     return true;
   }
-
-  /*
-   * For monorepos, make sure the
-   * dependency belongs to the same
-   * application area.
-   */
 
   return (
     normalizedPath === directory ||
@@ -419,6 +349,53 @@ function packageMatchesFile(
       `${directory}/`
     )
   );
+}
+
+// ==========================================
+// BUILD USAGE MAP
+// ==========================================
+
+function buildUsageMap(context) {
+  const usageMap =
+    new Map();
+
+  const sourceFiles =
+    context?.sourceCode?.files ||
+    [];
+
+  for (const file of sourceFiles) {
+    const filePath =
+      file?.path || "";
+
+    const content =
+      file?.content || "";
+
+    const imports =
+      extractImports(content);
+
+    for (const packageName of imports) {
+      if (!usageMap.has(packageName)) {
+        usageMap.set(
+          packageName,
+          []
+        );
+      }
+
+      usageMap
+        .get(packageName)
+        .push({
+          path: filePath,
+
+          isTest:
+            isTestFile(filePath),
+
+          isConfig:
+            isConfigFile(filePath)
+        });
+    }
+  }
+
+  return usageMap;
 }
 
 // ==========================================
@@ -432,75 +409,102 @@ function analyzeDependencyGroup(
 ) {
   const results = [];
 
-  dependencies.forEach(
-    (dependency) => {
-      const usages =
-        usageMap.get(
-          dependency.name
-        ) || [];
+  for (const dependency of dependencies) {
+    const usages =
+      usageMap.get(
+        dependency.name
+      ) || [];
 
-      const relevantUsages =
-        usages.filter(
-          (usage) =>
-            packageMatchesFile(
-              dependency,
-              usage.path
-            )
-        );
+    const relevantUsages =
+      usages.filter(
+        (usage) =>
+          packageMatchesFile(
+            dependency,
+            usage.path
+          )
+      );
 
-      const runtimeUsages =
-        relevantUsages.filter(
-          (usage) =>
-            !usage.isTest &&
-            !usage.isConfig
-        );
+    const runtimeUsages =
+      relevantUsages.filter(
+        (usage) =>
+          !usage.isTest &&
+          !usage.isConfig
+      );
 
-      const testUsages =
-        relevantUsages.filter(
-          (usage) =>
-            usage.isTest
-        );
+    const testUsages =
+      relevantUsages.filter(
+        (usage) =>
+          usage.isTest
+      );
 
-      const configUsages =
-        relevantUsages.filter(
-          (usage) =>
-            usage.isConfig
-        );
+    const configUsages =
+      relevantUsages.filter(
+        (usage) =>
+          usage.isConfig
+      );
 
-      const used =
-        relevantUsages.length > 0;
+    const used =
+      relevantUsages.length > 0;
 
-      const runtimeUsed =
-        runtimeUsages.length > 0;
+    const runtimeUsed =
+      runtimeUsages.length > 0;
 
-      results.push({
-        name: dependency.name,
-        version: dependency.version,
-        type,
-        packageFile:
-          dependency.packageFile,
-        used,
-        runtimeUsed,
-        usageCount:
-          relevantUsages.length,
-        importedFrom:
-          relevantUsages.map(
-            (usage) =>
-              usage.path
-          ),
-        testUsage:
-          testUsages.length,
-        configUsage:
-          configUsages.length
-      });
-    }
-  );
+    const files =
+      relevantUsages.map(
+        (usage) =>
+          usage.path
+      );
+
+    results.push({
+      name: dependency.name,
+
+      version:
+        dependency.version,
+
+      type,
+
+      // Frontend compatibility
+      category:
+        type === "production"
+          ? "production"
+          : "development",
+
+      packageFile:
+        dependency.packageFile,
+
+      used,
+
+      runtimeUsed,
+
+      usageCount:
+        relevantUsages.length,
+
+      // Existing frontend expects these
+      importCount:
+        relevantUsages.length,
+
+      files,
+
+      importedFrom:
+        files,
+
+      message: used
+        ? `"${dependency.name}" is used by the repository.`
+        : `"${dependency.name}" is declared but was not detected in source imports.`,
+
+      testUsage:
+        testUsages.length,
+
+      configUsage:
+        configUsages.length
+    });
+  }
 
   return results;
 }
 
 // ==========================================
-// SCRIPT ANALYSIS
+// ANALYZE NPM SCRIPTS
 // ==========================================
 
 function analyzeScripts(
@@ -508,77 +512,69 @@ function analyzeScripts(
   usageMap
 ) {
   const packageFiles =
-    findPackageFiles(
-      context
-    );
+    findPackageFiles(context);
 
   const results = [];
 
-  packageFiles.forEach(
-    (packageFile) => {
-      const packageJson =
-        readPackageJson(
-          context.projectPath,
-          packageFile
-        );
+  for (const packageFile of packageFiles) {
+    const packageJson =
+      readPackageJson(
+        context.projectPath,
+        packageFile
+      );
 
-      if (!packageJson) {
-        return;
-      }
+    if (!packageJson) {
+      continue;
+    }
 
-      const scripts =
-        packageJson.scripts ||
-        {};
+    const scripts =
+      packageJson.scripts ||
+      {};
 
-      Object.entries(
-        scripts
-      ).forEach(
-        ([scriptName, command]) => {
+    for (const [scriptName, command] of Object.entries(
+      scripts
+    )) {
+      const usedPackages = [];
 
-          const usedPackages =
-            [];
-
-          usageMap.forEach(
-            (_usages, packageName) => {
-              if (
-                String(command)
-                  .includes(
-                    packageName
-                  )
-              ) {
-                usedPackages.push(
-                  packageName
-                );
-              }
-            }
-          );
-
-          results.push({
-            packageFile:
-              normalizePath(
-                packageFile
-              ),
-            script:
-              scriptName,
-            command,
-            dependencies:
-              usedPackages
-          });
+      usageMap.forEach(
+        (_usages, packageName) => {
+          if (
+            String(command).includes(
+              packageName
+            )
+          ) {
+            usedPackages.push(
+              packageName
+            );
+          }
         }
       );
+
+      results.push({
+        packageFile:
+          normalizePath(
+            packageFile
+          ),
+
+        script:
+          scriptName,
+
+        command,
+
+        dependencies:
+          usedPackages
+      });
     }
-  );
+  }
 
   return results;
 }
 
 // ==========================================
-// MAIN ANALYZER
+// MAIN DEPENDENCY ANALYZER
 // ==========================================
 
-function analyzeDependencies(
-  context
-) {
+function analyzeDependencies(context) {
   const {
     production,
     development,
@@ -593,12 +589,20 @@ function analyzeDependencies(
       context
     );
 
+  // ========================================
+  // PRODUCTION
+  // ========================================
+
   const productionResults =
     analyzeDependencyGroup(
       [...production.values()],
       usageMap,
       "production"
     );
+
+  // ========================================
+  // DEVELOPMENT
+  // ========================================
 
   const developmentResults =
     analyzeDependencyGroup(
@@ -607,11 +611,19 @@ function analyzeDependencies(
       "development"
     );
 
+  // ========================================
+  // ALL DECLARED DEPENDENCIES
+  // ========================================
+
   const allDeclared =
     new Set([
       ...production.keys(),
       ...development.keys()
     ]);
+
+  // ========================================
+  // POTENTIALLY UNUSED
+  // ========================================
 
   const potentiallyUnused = [];
 
@@ -620,13 +632,18 @@ function analyzeDependencies(
     ...developmentResults
   ].forEach(
     (dependency) => {
+      if (!dependency.used) {
+        potentiallyUnused.push({
+          ...dependency,
 
-      if (
-        !dependency.used
-      ) {
-        potentiallyUnused.push(
-          dependency
-        );
+          category:
+            dependency.type === "production"
+              ? "production"
+              : "development",
+
+          message:
+            `"${dependency.name}" is declared but was not detected in source imports. It may still be used dynamically or through configuration.`
+        });
       }
     }
   );
@@ -640,7 +657,7 @@ function analyzeDependencies(
 
   usageMap.forEach(
     (usages, packageName) => {
-
+      // Already declared
       if (
         allDeclared.has(
           packageName
@@ -649,6 +666,7 @@ function analyzeDependencies(
         return;
       }
 
+      // Node built-in
       if (
         BUILTIN_MODULES.has(
           packageName
@@ -664,24 +682,39 @@ function analyzeDependencies(
             !usage.isConfig
         );
 
+      // Ignore test/config-only imports
       if (
         runtimeUsages.length === 0
       ) {
         return;
       }
 
+      const files =
+        runtimeUsages.map(
+          (usage) =>
+            usage.path
+        );
+
       missingMap.set(
         packageName,
         {
-          name: packageName,
-          severity: "high",
+          name:
+            packageName,
+
+          severity:
+            "high",
+
+          category:
+            "missing",
+
           message:
             `"${packageName}" is imported in the repository but is not declared in package.json.`,
+
+          // Frontend expects files
+          files,
+
           importedFrom:
-            runtimeUsages.map(
-              (usage) =>
-                usage.path
-            )
+            files
         }
       );
     }
@@ -723,19 +756,23 @@ function analyzeDependencies(
     potentiallyUnused.length * 5;
 
   score -=
-    devDependencyRuntimeUsage.length *
-    5;
+    devDependencyRuntimeUsage.length * 5;
 
-  score = Math.max(
-    0,
-    Math.min(100, score)
-  );
+  score =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        score
+      )
+    );
 
   // ========================================
   // STATUS
   // ========================================
 
-  let status = "healthy";
+  let status =
+    "healthy";
 
   if (score < 80) {
     status =
@@ -767,7 +804,22 @@ function analyzeDependencies(
   }
 
   // ========================================
-  // RESULT
+  // STATISTICS
+  // ========================================
+
+  const allResults = [
+    ...productionResults,
+    ...developmentResults
+  ];
+
+  const usedDependencies =
+    allResults.filter(
+      (dependency) =>
+        dependency.used
+    ).length;
+
+  // ========================================
+  // FINAL RESULT
   // ========================================
 
   return {
@@ -795,8 +847,7 @@ function analyzeDependencies(
 
     statistics: {
       totalDependencies:
-        productionResults.length +
-        developmentResults.length,
+        allResults.length,
 
       productionDependencies:
         productionResults.length,
@@ -804,14 +855,7 @@ function analyzeDependencies(
       developmentDependencies:
         developmentResults.length,
 
-      usedDependencies:
-        [
-          ...productionResults,
-          ...developmentResults
-        ].filter(
-          (dependency) =>
-            dependency.used
-        ).length,
+      usedDependencies,
 
       unusedDependencies:
         potentiallyUnused.length,
@@ -824,6 +868,10 @@ function analyzeDependencies(
     }
   };
 }
+
+// ==========================================
+// EXPORT
+// ==========================================
 
 module.exports = {
   analyzeDependencies
