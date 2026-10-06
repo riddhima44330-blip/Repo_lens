@@ -10,33 +10,43 @@ const {
 
 const router = express.Router();
 
+// ==========================================
+// DOCUMENTATION DRIFT
+// ==========================================
+
 router.post(
   "/documentation-drift",
   async (req, res) => {
+
     try {
+
       console.log(
         "========== DOCUMENTATION DRIFT REQUEST =========="
       );
 
       const {
-        repositoryId,
-        projectPath
+        repositoryId
       } = req.body;
+
+      // ========================================
+      // VALIDATE REPOSITORY ID
+      // ========================================
 
       if (!repositoryId) {
         return res.status(400).json({
-          error: "Repository ID is required"
+          error:
+            "Repository ID is required"
         });
       }
 
-      if (!projectPath) {
-        return res.status(400).json({
-          error: "Repository path is required"
-        });
-      }
+      // ========================================
+      // GET STORED CONTEXT
+      // ========================================
 
       const context =
-        getRepository(repositoryId);
+        getRepository(
+          repositoryId
+        );
 
       if (!context) {
         return res.status(404).json({
@@ -45,17 +55,37 @@ router.post(
         });
       }
 
+      // ========================================
+      // GET ACTUAL DOWNLOADED PATH
+      // ========================================
+
+      const projectPath =
+        context.projectPath;
+
+      if (!projectPath) {
+
+        return res.status(500).json({
+          error:
+            "Repository filesystem path is not available. Please scan the repository again."
+        });
+
+      }
+
       console.log(
-        "Repository:",
+        "Repository filesystem path:",
         projectPath
       );
 
-      // ------------------------------------------
-      // SAFELY GET REPOSITORY ANALYSIS
-      // ------------------------------------------
+      // ========================================
+      // SCAN DATA
+      // ========================================
 
       const scan =
         context.scan || {};
+
+      // ========================================
+      // PROJECT ANALYSIS
+      // ========================================
 
       const analysis =
         context.analysis ||
@@ -69,6 +99,10 @@ router.post(
           devDependencies: []
         };
 
+      // ========================================
+      // DOCUMENTATION DATA
+      // ========================================
+
       const documentation =
         context.documentation || {};
 
@@ -76,6 +110,10 @@ router.post(
         "Drift analysis languages:",
         analysis.languages || []
       );
+
+      // ========================================
+      // RUN DRIFT ANALYSIS
+      // ========================================
 
       const result =
         analyzeDocumentationDrift(
@@ -85,6 +123,10 @@ router.post(
           documentation
         );
 
+      // ========================================
+      // LOG RESULT
+      // ========================================
+
       console.log(
         "Documentation drift score:",
         result.score
@@ -92,12 +134,24 @@ router.post(
 
       console.log(
         "Documentation drift issues:",
-        result.issues.length
+        result.issues?.length || 0
       );
 
-      return res.json(result);
+      console.log(
+        "README path:",
+        result.readmePath || "Not found"
+      );
+
+      // ========================================
+      // RETURN RESULT
+      // ========================================
+
+      return res.json(
+        result
+      );
 
     } catch (error) {
+
       console.error(
         "DOCUMENTATION DRIFT ERROR:",
         error
@@ -106,7 +160,6 @@ router.post(
       return res.status(500).json({
         error:
           "Could not analyze documentation drift",
-
         details:
           error.message
       });

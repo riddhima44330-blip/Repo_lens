@@ -44,17 +44,7 @@ const dependencyRoute = require("./routes/dependencyRoute");
 
 const app = express();
 
-
-// ==========================================
-// SERVER PORT
-// ==========================================
-
 const PORT = process.env.PORT || 5000;
-
-
-// ==========================================
-// MIDDLEWARE
-// ==========================================
 
 app.use(cors());
 
@@ -63,7 +53,6 @@ app.use(
     limit: "50mb"
   })
 );
-
 
 // ==========================================
 // API ROUTES
@@ -76,9 +65,8 @@ app.use("/api", documentationRoute);
 app.use("/api", driftRoute);
 app.use("/api", dependencyRoute);
 
-
 // ==========================================
-// ANALYZE GITHUB REPOSITORY
+// REPOSITORY SCAN
 // ==========================================
 
 app.get("/api/scan", async (req, res) => {
@@ -88,10 +76,6 @@ app.get("/api/scan", async (req, res) => {
     console.log("=================================");
     console.log("REPOSITORY SCAN REQUEST");
     console.log("=================================");
-
-    // ---------------------------------
-    // Get GitHub repository URL
-    // ---------------------------------
 
     const repositoryUrl = req.query.url;
 
@@ -106,34 +90,36 @@ app.get("/api/scan", async (req, res) => {
       repositoryUrl
     );
 
-
-    // ---------------------------------
-    // 1. Download repository
-    // ---------------------------------
+    // ========================================
+    // STEP 1 — DOWNLOAD REPOSITORY
+    // ========================================
 
     console.log(
       "STEP 1: Downloading repository..."
     );
 
     projectPath =
-      await downloadRepository(repositoryUrl);
+      await downloadRepository(
+        repositoryUrl
+      );
 
     console.log(
       "Repository downloaded to:",
       projectPath
     );
 
-
-    // ---------------------------------
-    // 2. Scan repository
-    // ---------------------------------
+    // ========================================
+    // STEP 2 — SCAN
+    // ========================================
 
     console.log(
       "STEP 2: Scanning repository..."
     );
 
     const scanResult =
-      scanDirectory(projectPath);
+      scanDirectory(
+        projectPath
+      );
 
     console.log(
       "Files found:",
@@ -145,10 +131,9 @@ app.get("/api/scan", async (req, res) => {
       scanResult.folders.length
     );
 
-
-    // ---------------------------------
-    // 3. Analyze project
-    // ---------------------------------
+    // ========================================
+    // STEP 3 — PROJECT ANALYSIS
+    // ========================================
 
     console.log(
       "STEP 3: Analyzing project..."
@@ -175,10 +160,9 @@ app.get("/api/scan", async (req, res) => {
       analysis.frameworks
     );
 
-
-    // ---------------------------------
-    // 4. Analyze repository health
-    // ---------------------------------
+    // ========================================
+    // STEP 4 — HEALTH
+    // ========================================
 
     console.log(
       "STEP 4: Checking repository health..."
@@ -196,10 +180,9 @@ app.get("/api/scan", async (req, res) => {
       health.score
     );
 
-
-    // ---------------------------------
-    // 5. Analyze README
-    // ---------------------------------
+    // ========================================
+    // STEP 5 — README
+    // ========================================
 
     console.log(
       "STEP 5: Checking README..."
@@ -217,27 +200,27 @@ app.get("/api/scan", async (req, res) => {
       readme.score
     );
 
-
-    // ---------------------------------
-    // 6. Read source files
-    // ---------------------------------
+    // ========================================
+    // STEP 6 — SOURCE FILES
+    // ========================================
 
     console.log(
       "STEP 6: Reading source files..."
     );
 
     const sourceFiles =
-      readSourceFiles(projectPath);
+      readSourceFiles(
+        projectPath
+      );
 
     console.log(
       "Source files loaded:",
       sourceFiles.length
     );
 
-
-    // ---------------------------------
-    // 7. Generate repository context
-    // ---------------------------------
+    // ========================================
+    // STEP 7 — CONTEXT
+    // ========================================
 
     console.log(
       "STEP 7: Generating repository context..."
@@ -252,6 +235,14 @@ app.get("/api/scan", async (req, res) => {
         sourceFiles
       );
 
+    // IMPORTANT:
+    // Store the actual downloaded filesystem
+    // path so later analysis features such as
+    // Documentation Drift can access README/files.
+
+    context.projectPath =
+      projectPath;
+
     console.log(
       "Context generated."
     );
@@ -261,27 +252,28 @@ app.get("/api/scan", async (req, res) => {
       context.sourceCode?.totalFiles
     );
 
+    console.log(
+      "Repository filesystem path:",
+      context.projectPath
+    );
 
-    // ---------------------------------
-    // 8. Store repository context
-    // ---------------------------------
+    // ========================================
+    // STEP 8 — STORE REPOSITORY
+    // ========================================
 
     console.log(
       "STEP 8: Storing repository context..."
     );
 
     const repositoryId =
-      createRepository(context);
+      createRepository(
+        context
+      );
 
     console.log(
       "Repository ID:",
       repositoryId
     );
-
-
-    // ---------------------------------
-    // 9. Return analysis
-    // ---------------------------------
 
     console.log(
       "Repository analysis completed."
@@ -320,12 +312,13 @@ app.get("/api/scan", async (req, res) => {
     );
 
     return res.status(500).json({
-      error: "Could not analyze repository",
-      details: error.message
+      error:
+        "Could not analyze repository",
+      details:
+        error.message
     });
   }
 });
-
 
 // ==========================================
 // UNKNOWN API ROUTES
@@ -333,10 +326,10 @@ app.get("/api/scan", async (req, res) => {
 
 app.use("/api", (req, res) => {
   return res.status(404).json({
-    error: "API endpoint not found"
+    error:
+      "API endpoint not found"
   });
 });
-
 
 // ==========================================
 // START SERVER
@@ -375,5 +368,4 @@ app.listen(PORT, () => {
   console.log(
     "================================="
   );
-
 });
