@@ -20,9 +20,7 @@ async function downloadRepository(repositoryUrl) {
     url.hostname !== "github.com" &&
     url.hostname !== "www.github.com"
   ) {
-    throw new Error(
-      "Only GitHub repository URLs are supported"
-    );
+    throw new Error("Only GitHub repository URLs are supported");
   }
 
   const parts = url.pathname
@@ -30,33 +28,18 @@ async function downloadRepository(repositoryUrl) {
     .filter(Boolean);
 
   if (parts.length < 2) {
-    throw new Error(
-      "Invalid GitHub repository URL"
-    );
+    throw new Error("Invalid GitHub repository URL");
   }
 
   const owner = parts[0];
   const repo = parts[1].replace(/\.git$/, "");
 
-  if (!owner || !repo) {
-    throw new Error(
-      "Could not determine GitHub repository"
-    );
-  }
-
   console.log(
     `Preparing GitHub repository: ${owner}/${repo}`
   );
 
-  // ==========================================
-  // CREATE TEMP DIRECTORY
-  // ==========================================
-
   const tempDir = fs.mkdtempSync(
-    path.join(
-      os.tmpdir(),
-      "repolens-"
-    )
+    path.join(os.tmpdir(), "repolens-")
   );
 
   const archivePath = path.join(
@@ -69,43 +52,45 @@ async function downloadRepository(repositoryUrl) {
     "repository"
   );
 
-  fs.mkdirSync(
-    extractDir,
-    {
-      recursive: true
-    }
-  );
+  fs.mkdirSync(extractDir, {
+    recursive: true
+  });
 
-  // ==========================================
-  // TRY MAIN / MASTER
-  // ==========================================
-
-  const branches = [
-    "main",
-    "master"
-  ];
+  const branches = ["main", "master"];
 
   let downloaded = false;
+  let lastError = "";
 
   for (const branch of branches) {
 
     const archiveUrl =
-      `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.tar.gz`;
+      `https://codeload.github.com/${owner}/${repo}/tar.gz/refs/heads/${branch}`;
 
     console.log(
-      `Trying GitHub branch: ${branch}`
+      `Downloading from: ${archiveUrl}`
     );
 
     try {
 
-      const response =
-        await fetch(archiveUrl);
+      const response = await fetch(
+        archiveUrl,
+        {
+          headers: {
+            "User-Agent": "RepoLens"
+          }
+        }
+      );
+
+      console.log(
+        `GitHub response for ${branch}:`,
+        response.status,
+        response.statusText
+      );
 
       if (!response.ok) {
 
-        console.log(
-          `Branch ${branch} unavailable: HTTP ${response.status}`
-        );
+        lastError =
+          `GitHub returned HTTP ${response.status} ${response.statusText} for branch ${branch}`;
 
         continue;
       }
@@ -123,38 +108,36 @@ async function downloadRepository(repositoryUrl) {
       downloaded = true;
 
       console.log(
-        `Repository downloaded from ${branch}`
+        `Repository downloaded successfully from ${branch}`
       );
 
       break;
 
     } catch (error) {
 
-      console.log(
-        `Download attempt failed for ${branch}:`,
-        error.message
-      );
+      lastError =
+        `Download failed for ${branch}: ${error.message}`;
 
+      console.error(
+        lastError
+      );
     }
   }
 
   if (!downloaded) {
 
-    fs.rmSync(
-      tempDir,
-      {
-        recursive: true,
-        force: true
-      }
-    );
+    fs.rmSync(tempDir, {
+      recursive: true,
+      force: true
+    });
 
     throw new Error(
-      "Could not download the GitHub repository. Make sure the repository is public and the URL is correct."
+      `Could not download GitHub repository. ${lastError}`
     );
   }
 
   // ==========================================
-  // EXTRACT REPOSITORY
+  // EXTRACT
   // ==========================================
 
   console.log(
@@ -178,21 +161,18 @@ async function downloadRepository(repositoryUrl) {
 
   } catch (error) {
 
-    fs.rmSync(
-      tempDir,
-      {
-        recursive: true,
-        force: true
-      }
-    );
+    fs.rmSync(tempDir, {
+      recursive: true,
+      force: true
+    });
 
     throw new Error(
-      "Could not extract the GitHub repository archive"
+      `Could not extract repository archive: ${error.message}`
     );
   }
 
   // ==========================================
-  // FIND EXTRACTED DIRECTORY
+  // FIND REPOSITORY DIRECTORY
   // ==========================================
 
   const items =
@@ -210,16 +190,13 @@ async function downloadRepository(repositoryUrl) {
 
   if (!repositoryDirectory) {
 
-    fs.rmSync(
-      tempDir,
-      {
-        recursive: true,
-        force: true
-      }
-    );
+    fs.rmSync(tempDir, {
+      recursive: true,
+      force: true
+    });
 
     throw new Error(
-      "The downloaded GitHub repository was empty"
+      "Downloaded repository archive was empty"
     );
   }
 
