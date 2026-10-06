@@ -14,7 +14,7 @@ function unique(values) {
 }
 
 /* -------------------------------------------------------
-   README DETECTION
+   FIND README
 ------------------------------------------------------- */
 
 function findReadme(projectPath, scan) {
@@ -58,7 +58,7 @@ function findReadme(projectPath, scan) {
 }
 
 /* -------------------------------------------------------
-   README READING
+   READ README
 ------------------------------------------------------- */
 
 function readReadme(projectPath, readmePath) {
@@ -76,14 +76,17 @@ function readReadme(projectPath, readmePath) {
       return "";
     }
 
-    return fs.readFileSync(fullPath, "utf8");
+    return fs.readFileSync(
+      fullPath,
+      "utf8"
+    );
   } catch (error) {
     return "";
   }
 }
 
 /* -------------------------------------------------------
-   TECHNOLOGY NORMALIZATION
+   NORMALIZE TECHNOLOGY
 ------------------------------------------------------- */
 
 function normalizeTechnology(value) {
@@ -95,7 +98,7 @@ function normalizeTechnology(value) {
 }
 
 /* -------------------------------------------------------
-   README TECHNOLOGY CLAIMS
+   EXTRACT TECHNOLOGY CLAIMS
 ------------------------------------------------------- */
 
 function extractTechnologyClaims(readme) {
@@ -106,12 +109,9 @@ function extractTechnologyClaims(readme) {
   }
 
   /*
-   * IMPORTANT:
-   * Do not include single-letter "c".
-   *
-   * README text commonly contains the letter "c"
-   * inside normal English words, which creates false
-   * technology detections.
+   * Do NOT include "c".
+   * A single letter creates false positives because
+   * normal README text contains the letter "c".
    */
 
   const knownTechnologies = [
@@ -151,16 +151,21 @@ function extractTechnologyClaims(readme) {
     "netlify"
   ];
 
-  const lower = readme.toLowerCase();
+  const lower =
+    readme.toLowerCase();
 
-  for (const technology of knownTechnologies) {
+  for (
+    const technology of knownTechnologies
+  ) {
     if (
       lower.includes(
         technology.toLowerCase()
       )
     ) {
       claims.push(
-        normalizeTechnology(technology)
+        normalizeTechnology(
+          technology
+        )
       );
     }
   }
@@ -169,7 +174,7 @@ function extractTechnologyClaims(readme) {
 }
 
 /* -------------------------------------------------------
-   README PATH REFERENCES
+   EXTRACT REFERENCED PATHS
 ------------------------------------------------------- */
 
 function extractReferencedPaths(readme) {
@@ -189,7 +194,8 @@ function extractReferencedPaths(readme) {
   let match;
 
   while (
-    (match = markdownLinks.exec(readme)) !== null
+    (match =
+      markdownLinks.exec(readme)) !== null
   ) {
     const value =
       match[1]
@@ -209,7 +215,8 @@ function extractReferencedPaths(readme) {
     /`([^`]+)`/g;
 
   while (
-    (match = backtickPaths.exec(readme)) !== null
+    (match =
+      backtickPaths.exec(readme)) !== null
   ) {
     const value =
       match[1].trim();
@@ -239,7 +246,7 @@ function extractReferencedPaths(readme) {
 }
 
 /* -------------------------------------------------------
-   REPOSITORY FILE LIST
+   BUILD REPOSITORY FILE LIST
 ------------------------------------------------------- */
 
 function buildRepositoryFiles(scan) {
@@ -256,7 +263,7 @@ function buildRepositoryFiles(scan) {
 }
 
 /* -------------------------------------------------------
-   PATH EXISTENCE CHECK
+   CHECK REFERENCED PATH
 ------------------------------------------------------- */
 
 function referencedPathExists(
@@ -273,7 +280,7 @@ function referencedPathExists(
   }
 
   /*
-   * External links are not repository paths.
+   * External URLs
    */
 
   if (
@@ -291,7 +298,7 @@ function referencedPathExists(
   }
 
   /*
-   * README anchors are valid.
+   * README anchors
    */
 
   if (
@@ -301,7 +308,7 @@ function referencedPathExists(
   }
 
   /*
-   * Exact repository path.
+   * Exact match
    */
 
   if (
@@ -313,7 +320,12 @@ function referencedPathExists(
   }
 
   /*
-   * Path may be written without ./.
+   * Suffix match.
+   *
+   * Example:
+   *
+   * README -> backend/package.json
+   * Repository -> /some/root/backend/package.json
    */
 
   if (
@@ -330,56 +342,39 @@ function referencedPathExists(
   /*
    * IMPORTANT:
    *
-   * Generic filenames such as:
+   * Generic files such as package.json can exist
+   * inside multiple directories.
    *
-   * package.json
-   * package-lock.json
-   * README.md
-   *
-   * may exist in multiple folders.
-   *
-   * Therefore a basename match is considered valid.
-   */
-
-  const basename =
-    path
-      .basename(normalizedReference)
-      .toLowerCase();
-
-  if (
-    basename === normalizedReference
-  ) {
-    const matchingFiles =
-      repositoryFiles.filter(
-        (file) =>
-          path
-            .basename(file)
-            .toLowerCase() === basename
-      );
-
-    if (
-      matchingFiles.length > 0
-    ) {
-      return true;
-    }
-  }
-
-  /*
-   * Also support references such as:
+   * Example:
    *
    * backend/package.json
    * replens/package.json
+   *
+   * Therefore if README says simply:
+   *
+   * package.json
+   *
+   * we consider it valid if ANY repository file
+   * has that basename.
    */
 
-  const matchingSuffix =
+  const referenceBasename =
+    path
+      .basename(
+        normalizedReference
+      )
+      .toLowerCase();
+
+  const hasBasenameMatch =
     repositoryFiles.some(
       (file) =>
-        file.endsWith(
-          `/${normalizedReference}`
-        )
+        path
+          .basename(file)
+          .toLowerCase() ===
+        referenceBasename
     );
 
-  if (matchingSuffix) {
+  if (hasBasenameMatch) {
     return true;
   }
 
@@ -398,14 +393,18 @@ function detectTechnologyMismatches(
     ...(analysis?.languages || []),
     ...(analysis?.frameworks || []),
     ...(analysis?.tools || [])
-  ].map(normalizeTechnology);
+  ].map(
+    normalizeTechnology
+  );
 
   const normalizedDetected =
     unique(detected);
 
   const mismatches = [];
 
-  for (const technology of readmeClaims) {
+  for (
+    const technology of readmeClaims
+  ) {
     const normalized =
       normalizeTechnology(
         technology
@@ -466,7 +465,7 @@ function detectTechnologyMismatches(
 }
 
 /* -------------------------------------------------------
-   MAIN ANALYZER
+   MAIN DOCUMENTATION DRIFT ANALYZER
 ------------------------------------------------------- */
 
 function analyzeDocumentationDrift(
@@ -502,10 +501,7 @@ function analyzeDocumentationDrift(
       issues: [
         {
           severity: "high",
-
-          type:
-            "missing-readme",
-
+          type: "missing-readme",
           message:
             "README.md was not found in the repository."
         }
@@ -545,10 +541,7 @@ function analyzeDocumentationDrift(
       issues: [
         {
           severity: "high",
-
-          type:
-            "unreadable-readme",
-
+          type: "unreadable-readme",
           message:
             "README.md exists but could not be read."
         }
@@ -582,17 +575,15 @@ function analyzeDocumentationDrift(
     (message) => {
       issues.push({
         severity: "medium",
-
         type:
           "technology-mismatch",
-
         message
       });
     }
   );
 
   /*
-   * Referenced repository paths
+   * Repository paths mentioned in README
    */
 
   const referencedPaths =
@@ -609,7 +600,7 @@ function analyzeDocumentationDrift(
     const reference of referencedPaths
   ) {
     /*
-     * Ignore external URLs.
+     * Ignore URLs
      */
 
     if (
@@ -625,7 +616,7 @@ function analyzeDocumentationDrift(
     }
 
     /*
-     * Ignore common example values.
+     * Ignore common example values
      */
 
     if (
@@ -659,7 +650,7 @@ function analyzeDocumentationDrift(
   }
 
   /*
-   * Calculate score
+   * Score
    */
 
   let score = 100;
@@ -668,13 +659,11 @@ function analyzeDocumentationDrift(
     const issue of issues
   ) {
     if (
-      issue.severity ===
-      "high"
+      issue.severity === "high"
     ) {
       score -= 15;
     } else if (
-      issue.severity ===
-      "medium"
+      issue.severity === "medium"
     ) {
       score -= 8;
     } else {
